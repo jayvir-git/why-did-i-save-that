@@ -1683,3 +1683,98 @@ main { margin:0 auto; padding:24px 28px 0; max-width:1600px; min-height:calc(100
   .local-storage { display:inline; }
   .workspace-guide { max-width:60%; }
 }
+/* Invention signature: neutral housing, bright indicators, and a little eccentricity. */
+:root {
+  --paper:#fcfcfa; --ink:#222126; --muted:#626269; --line:#d5d5d1;
+  --rule:#989993; --accent:#392c45; --soft:#efedf2; --gold:#795300;
+  --spark:#d5f23b; --amber:#ffbf38; --radius:2px;
+  background:#e8e9e5;
+}
+body { max-width:1540px; margin:24px auto; border:1px solid #95968f; background:var(--paper); box-shadow:3px 3px 0 #c9cac5; }
+.app-header { background:var(--paper); color:var(--ink); border-top:3px solid var(--accent); border-bottom:1px solid var(--rule); gap:24px; }
+.app-identity { gap:7px; }
+.app-identity>svg:first-child { stroke:var(--accent); }
+.app-identity strong { color:var(--accent); }
+.app-identity .invention-mark { width:64px; height:22px; padding:0; margin-left:10px; stroke:none; }
+.mark-fragments { fill:#68517c; }
+.mark-stack { fill:#b8d521; }
+.mark-find { fill:var(--amber); stroke:#8a610f; stroke-width:.7; }
+.primary-nav a { color:var(--muted); border:0; position:relative; padding:16px 12px; }
+.primary-nav a:before,.queue-link:before { content:''; display:inline-block; width:7px; height:7px; flex:0 0 7px; border:1px solid #9b9c94; border-radius:50%; background:transparent; }
+.primary-nav a[aria-current=page] { background:transparent; color:var(--ink); }
+.primary-nav a[aria-current=page]:before,.queue-link[aria-current=page]:before { background:var(--spark); border-color:#526014; box-shadow:0 0 0 2px #e9efcf; }
+.primary-nav a:hover,.queue-link:hover { color:var(--ink); background:#efefeb; }
+.primary-nav .nav-count { color:var(--muted); }
+.queue-link { color:var(--muted); border-left-color:var(--line); display:flex; align-items:center; gap:8px; }
+.queue-link[aria-current=page] { color:var(--ink); text-decoration:none; font-weight:600; }
+.app-header #new-note { color:var(--ink); border-color:var(--rule); background:var(--paper); box-shadow:2px 2px 0 #dedfd8; }
+.app-header #new-note:hover { background:#f1f2e9; border-color:#686960; }
+main { min-height:calc(100dvh - 115px); }
+.search-box { border-color:#676661; background:#fff; box-shadow:2px 2px 0 #e0e1dc; }
+.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.primary:hover { background:#4e3a5f; border-color:#4e3a5f; }
+button:active:not(:disabled) { box-shadow:inset 1px 1px 0 #22212644; transform:translateY(1px); }
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible { outline-color:#655078; }
+.search-box:focus-within { outline-color:#655078; }
+.results-toolbar:has(#message:not([hidden])) { border-bottom:0; }
+.search-detail { border-top:8px solid transparent; border-image:repeating-linear-gradient(90deg,#afb1a5 0 1px,transparent 1px 4px) 8; padding-top:9px; }
+.segmented-control button[aria-pressed=true] { background:var(--spark); color:#283005; box-shadow:inset 0 -2px #7f9711; }
+.segmented-control button:focus-visible { outline-color:#392c45; }
+.source-card,.scan-view .library-result,.reader,.reader .actions,.reader #close-reader { background:#fff; }
+.scan-view .library-result:nth-child(even) { background:#f5f6f2; }
+.library-view .selected-source { background:#f0f5d9!important; box-shadow:inset 3px 0 #9dbb16; }
+.match-preview { border-left-color:#a5b975; }
+.match-preview .passage-label { color:#646851; }
+.actions .cite-action,.reader .actions .cite-action,#save-note { background:var(--amber); color:#362700; border-color:#ad7a15; box-shadow:1px 1px 0 #e5d6b7; }
+.actions .cite-action:hover,.reader .actions .cite-action:hover,#save-note:hover { background:#ffd06a; border-color:#8b6010; }
+.reader { border-top:3px solid var(--accent); }
+.result-number { color:#696b60; }
+.dialog-header { border-bottom:1px dotted #909385; padding-bottom:16px; }
+.citation-section { background:#f0f1e9; border:1px solid var(--line); }
+.workspace-footer { display:grid; grid-template-columns:1fr auto auto; gap:20px; border-top:1px solid var(--rule); margin-top:32px; align-items:start; padding-bottom:18px; }
+.version-plate { display:flex; gap:0!important; font:11px/1.5 var(--mono); white-space:nowrap; border:1px solid #92968a; }
+.version-plate span { padding:2px 6px; }
+.version-plate span:first-child { color:#30380c; background:var(--spark); border-right:1px solid #92968a; }
+.workspace-guide { max-width:none; }
+.workspace-guide summary { text-decoration:underline; text-decoration-style:dotted; text-underline-offset:4px; }
+.workspace-guide[open] { grid-column:1 / -1; grid-row:2; text-align:left; }
+.workspace-guide[open]+.version-plate { grid-column:3; grid-row:1; }
+.guide-panel { margin-top:16px; border:1px solid var(--rule); border-top:3px solid var(--accent); padding:20px; max-width:760px; background:#f5f6f2; font-size:13px; }
+.guide-panel .guide-title { margin:0 0 20px; font-weight:600; font-size:16px; }
+.invention-route { display:flex; list-style:none; padding:0; margin:0 0 22px; gap:24px; }
+.invention-route li { flex:1; position:relative; border:1px solid var(--rule); padding:12px; background:#fff; }
+.invention-route li+li:before { content:'→'; position:absolute; left:-22px; top:12px; color:var(--muted); }
+.invention-route strong,.invention-route span { display:block; }
+.invention-route strong { border-left:4px solid #68517c; padding-left:8px; margin-bottom:6px; }
+.invention-route li:nth-child(2) strong { border-color:#a3bd22; }
+.invention-route li:nth-child(3) strong { border-color:#ffbf38; }
+.invention-route span { color:var(--muted); font-size:12px; }
+.guide-aside { font:11px var(--mono); padding-top:12px; border-top:1px dotted var(--rule); }
+@media(max-width:1600px) { body { margin:18px; } }
+@media(max-width:950px) { .app-identity .invention-mark { display:none; } .app-header { gap:16px; } }
+@media(max-width:600px) {
+  body { margin:0; border:0; box-shadow:none; }
+  .app-header { gap:0 10px; }
+  .app-identity .invention-mark { display:block; width:45px; margin-left:4px; }
+  .primary-nav a:first-child { padding-right:12px; }
+  main { min-height:calc(100dvh - 98px); }
+  .workspace-footer { grid-template-columns:1fr auto; gap:12px; }
+  .workspace-guide { grid-column:1; grid-row:2; text-align:left; }
+  .workspace-guide[open] { grid-column:1 / -1; }
+  .workspace-guide[open]+.version-plate,.version-plate { grid-column:2; grid-row:1; }
+  .guide-panel { padding:16px; }
+  .invention-route { flex-direction:column; gap:20px; }
+  .invention-route li+li:before { content:'↓'; top:-21px; left:20px; }
+}
+.search-detail { border-image:none; border-top:0; position:relative; padding-top:17px; }
+.search-detail:before { content:''; position:absolute; top:0; left:0; right:0; height:8px; background:radial-gradient(circle,#9fa28f .7px,transparent .9px) 0 0 / 4px 4px; }
+/* Keep the help disclosure in place as it expands, including for pointer users. */
+.workspace-footer { grid-template-columns:1fr auto; gap:12px 20px; }
+.workspace-guide,.workspace-guide[open] { grid-column:1 / -1; grid-row:2; text-align:left; }
+.workspace-guide[open]+.version-plate,.version-plate { grid-column:2; grid-row:1; }
+.queue-link { white-space:nowrap; }
+@media(max-width:360px) {
+  .app-identity>svg:first-child { display:none; }
+  .app-identity .invention-mark { width:38px; }
+  .queue-link { font-size:11px; padding-left:4px; }
+}

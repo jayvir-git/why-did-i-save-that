@@ -1,6 +1,6 @@
 # Workspace UI
 
-The interface is a local source-and-notes workspace. Warm paper reading surfaces, dark purple navigation, and restrained gold selections give it a consistent identity. The compact inator signature retains the full product name in its accessible label and tooltip. The invention joke stays in the identity and help copy; functional labels stay plain. No external fonts, UI frameworks, or new runtime dependencies are required.
+The interface is a local source-and-notes workspace. Chalk-white reading surfaces sit within a fine instrument-like frame. Aubergine details, yellow-green selections, and amber keeping actions give it a consistent identity. The compact inator signature retains the full product name in its accessible label and tooltip. The invention joke stays in the identity and help copy; functional labels stay plain. No external fonts, UI frameworks, or new runtime dependencies are required.
 
 ## Organization
 
@@ -23,7 +23,7 @@ The interface is a local source-and-notes workspace. Warm paper reading surfaces
 
 ## Visual principles
 
-Proportional sans-serif typography carries headings and source prose; monospace is reserved for ordinals, counts, and retrieval details. Rules and alignment distinguish regions without turning every record into an isolated decorative card. Purple anchors navigation and primary actions; gold identifies selection and keeping evidence. Controls share modest corner radii. Reading takes priority over introductory artwork and repeated headings.
+Proportional sans-serif typography carries headings and source prose; monospace is reserved for ordinals, counts, and retrieval details. Rules and alignment distinguish regions without turning every record into an isolated decorative card. Aubergine anchors primary actions and structural details; yellow-green identifies selection; amber marks keeping evidence. The header uses neutral surfaces with small active-destination indicators. An original fragments/stack/find motif repeats the colors of the Sources → Evidence → Notes guide. A stippled divider adds texture without covering reading surfaces. Controls share modest corner radii. Reading takes priority over introductory artwork and repeated headings.
 
 References that informed the design:
 
@@ -41,3 +41,5 @@ These are sources of inspiration, not an endorsement or a claim that their autho
 See [TESTING.md](../TESTING.md) for commands and the browser acceptance checklist. `python scripts/preview_ui.py` serves the real UI at `http://127.0.0.1:8770` against a disposable 24-post synthetic collection. Stop with Ctrl+C.
 
 Controller tests exercise navigation and request lifecycles with a small DOM adapter. Browser checks cover desktop list/reader layouts, narrow mobile navigation, note dialogs, review workflows, and overflow at 320px. Visual checks complement the tests; they are not automated browser coverage. Personal collection measurements and captured content do not belong in this document.
+
+The footer contains an expandable “Inside the invention” guide and a LOCAL version plate. The plate reflects package.json; scripts/check.cjs rejects a mismatched version. The outer margin and frame collapse on mobile to preserve space.

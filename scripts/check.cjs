@@ -6,3 +6,7 @@ for(const file of fs.readdirSync(root).filter(f=>f.endsWith('.mjs')))require('no
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 for(const script of manifest.content_scripts.flatMap(s=>s.js))if(!fs.existsSync(path.join(root,script)))throw new Error(`Missing ${script}`);
 console.log('Extension and workspace JavaScript parse; manifest script paths exist.');
+
+const appVersion=JSON.parse(fs.readFileSync(path.join(__dirname,'..','package.json'),'utf8')).version;
+const appHtml=fs.readFileSync(path.join(__dirname,'..','gold_workspace','web','app.html'),'utf8');
+if(!appHtml.includes(`id="app-version">v${appVersion}</span>`) || !appHtml.includes(`aria-label="Local app version ${appVersion}"`))throw new Error('Update the workspace version plate to match package.json');
