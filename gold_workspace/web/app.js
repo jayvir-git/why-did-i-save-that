@@ -14,7 +14,7 @@ function render(rows){for(const row of rows){const card=el('article');if(view===
  card.append(el('h3',row.name),el('p',`${row.kind} · version ${row.version} · ${row.objective}`,'meta'));
  if(row.changed_evidence?.length)card.append(el('p','Review needed: a cited source has a newer captured version.'));
  else if(row.newer_corpus_available)card.append(el('p','Newer library material is available; this does not invalidate the note.','meta'));
- card.append(el('pre',typeof row.content==='string'?row.content:JSON.stringify(row.content,null,2)));
+ const content=row.content;const summary=typeof content==='string'?content:content?.statement||content?.text||content?.conclusion||content?.summary||'Saved research artifact. Expand its contents below.';card.append(el('p',typeof summary==='string'?summary:JSON.stringify(summary)));if(content?.evidence?.length)card.append(el('p',`${content.evidence.length} cited source spans � ${content.status||'unverified'}`,'meta'));const detail=el('details');detail.append(el('summary','Evidence and full research contents'),el('pre',JSON.stringify(content,null,2)));card.append(detail);
  }else{
  card.append(el('h3',row.objective),el('p',row.state,'meta'));
  action(card,'Inspect source',async()=>{const [s]=await api('get',{observation_ids:[row.observation_id]});if(['image/png','image/jpeg','image/webp','image/gif'].includes(s.raw.mime)){const image=el('img');image.src='/media/'+row.observation_id;image.alt='Cached source image for review';card.append(image);}card.append(el('pre',JSON.stringify(s.raw,null,2)));link(card,s.raw.url);});

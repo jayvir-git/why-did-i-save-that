@@ -71,7 +71,9 @@ class ResearchMixin:
         for r in self.db.execute('SELECT a.*,i.objective,i.snapshot FROM artifacts a JOIN investigations i ON i.id=a.investigation_id WHERE a.version=(SELECT max(b.version) FROM artifacts b WHERE b.investigation_id=a.investigation_id AND b.name=a.name)'):
             content = json.loads(r['content'])
             hay = terms(r['name']+' '+r['objective']+' '+r['content'])
-            score = sum(hay.count(t) for t in query)
+            score = sum(hay.count(t)/(len(hay)+1) for t in query)
+            score += 10*sum(t in terms(r['name']) for t in query)
+            if text and text.casefold()==r['name'].casefold(): score += 100
             if query and not score: continue
             changed = []
             if isinstance(content, dict):
