@@ -1,28 +1,413 @@
-'use strict';
-const $=s=>document.querySelector(s);let view='library',resultId=null,next=null,evidence=[],generation=0;
-const el=(tag,text,cls)=>{const x=document.createElement(tag);if(text!=null)x.textContent=text;if(cls)x.className=cls;return x;};
-async function api(operation,args={}){const r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({operation,args})});const d=await r.json();if(!r.ok)throw Error(d.error||'Request failed');return d;}
-function message(t){$('#message').textContent=t;}
-function action(parent,label,fn){const b=el('button',label);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){message(e.message);}finally{b.disabled=false;}};parent.append(b);}
-function link(parent,url){try{const u=new URL(url);if(!['http:','https:'].includes(u.protocol))return;const a=el('a','Open source');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';parent.append(a);}catch{}}
-function render(rows){for(const row of rows){const card=el('article');if(view==='library'){
- card.append(el('h3',row.author?`@${row.author}`:'Saved post'),el('p',row.text?(row.text.length>600?row.text.slice(0,600)+'…':row.text):'Attachment without captured post text'));if(row.text?.length>600){const full=el('details');full.append(el('summary','Read full post'),el('pre',row.text));card.append(full);}link(card,row.url);
- const unique=[...new Map((row.supporting_passages||[]).map(p=>[p.quote,p])).values()];for(const p of unique.slice(0,3)){const coverage=p.coverage||p.role;const label=coverage?.includes('ocr')?'Image text (OCR)':coverage?.includes('thumbnail')?'Video thumbnail text only':coverage?.includes('transcript')?'Imported transcript':coverage?.includes('interpretation')||coverage?.includes('visual')?'Agent interpretation':coverage==='html_text_only'?'Linked page':coverage?.includes('quote')?'Quoted post':'Source excerpt';card.append(el('p',label,'meta'),el('blockquote',p.quote));}if(unique.length>3){const more=el('details');more.append(el('summary','More supporting excerpts'));for(const p of unique.slice(3))more.append(el('blockquote',p.quote));card.append(more);}
- const actions=el('div',null,'actions');action(actions,'Cite in note',()=>{evidence=(row.supporting_passages||[]).slice(0,3).map(p=>({observation_id:p.observation_id,field:p.field||'text',start:p.start,end:p.end,quote:p.quote}));$('#citation').textContent=`${evidence.length} exact source spans attached.`;$('#note').focus();});
- action(actions,'Request media review',async()=>{const objective=prompt('What should the media review help you understand?');if(!objective)return;const source=(row.supporting_passages||[]).find(p=>p.role!=='post');await api('request_media',{observation_id:source?.observation_id||row.observation_id,objective});message('Media review queued. An agent can inspect the source and complete it.');});card.append(actions);
- }else if(view==='research'){
- card.append(el('h3',row.name),el('p',`${row.kind} · version ${row.version} · ${row.objective}`,'meta'));
- if(row.changed_evidence?.length)card.append(el('p','Review needed: a cited source has a newer captured version.'));
- else if(row.newer_corpus_available)card.append(el('p','Newer library material is available; this does not invalidate the note.','meta'));
- const content=row.content;const summary=typeof content==='string'?content:content?.statement||content?.text||content?.conclusion||content?.summary||'Saved research artifact. Expand its contents below.';card.append(el('p',typeof summary==='string'?summary:JSON.stringify(summary)));if(content?.evidence?.length)card.append(el('p',`${content.evidence.length} cited source spans · ${content.status||'unverified'}`,'meta'));const detail=el('details');detail.append(el('summary','Evidence and full research contents'),el('pre',JSON.stringify(content,null,2)));card.append(detail);
- }else{
- card.append(el('h3',row.objective),el('p',row.state,'meta'));
- action(card,'Inspect source',async()=>{const [s]=await api('get',{observation_ids:[row.observation_id]});if(['image/png','image/jpeg','image/webp','image/gif'].includes(s.raw.mime)){const image=el('img');image.src='/media/'+row.observation_id;image.alt='Cached source image for review';card.append(image);}card.append(el('pre',JSON.stringify(s.raw,null,2)));link(card,s.raw.url);});
- if(row.state==='pending'){const area=el('textarea');area.placeholder='Paste an inspected visual analysis or transcript (timecodes are preserved).';area.setAttribute('aria-label','Media analysis');const kind=el('select');for(const value of ['visual','transcript']){const o=el('option',value);o.value=value;kind.append(o);}card.append(area,kind);action(card,'Save analysis',async()=>{await api('complete_media',{request_id:row.id,description:area.value,kind:kind.value,expected_version:row.version});message('Analysis saved. Keyword search includes it now; rebuild the meaning index to include it there.');await load();});}
- }$('#results').append(card);}}
-async function page(append=false){const current=resultId,currentView=view;const d=await api('result',{result_id:resultId,offset:append?next:0,limit:20});if(current!==resultId||currentView!==view)return;if(!append)$('#results').replaceChildren();render(d.rows);next=d.next_offset;$('#more').hidden=next==null;}
-async function load(){const ticket=++generation;message('Searching…');$('#more').hidden=true;try{let d;if(view==='library')d=await api('search_library',{text:$('#query').value,mode:$('#mode').value});else if(view==='research')d=await api('research_search',{text:$('#query').value});else d=await api('media_requests');if(ticket!==generation)return;resultId=d.receipt.result_id;await page();if(ticket!==generation)return;message(`${d.receipt.count} results.${d.receipt.semantic_index && d.receipt.semantic_index.workspace_revision_now>d.receipt.semantic_index.enrichment_revision?' New evidence is available; rebuild the meaning index to include it.':''}${d.receipt.fallback?' Meaning search unavailable; showing word matches. '+d.receipt.fallback:''}`);}catch(e){message(e.message);}}
-$('#search-form').onsubmit=async e=>{e.preventDefault();await load();};$('#more').onclick=()=>page(true).catch(e=>message(e.message));
-for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>{generation++;view=b.dataset.view;$('#query').required=view==='library';$('#mode').hidden=view!=='library';$('#search').hidden=view==='media';$('#results').replaceChildren();$('#more').hidden=true;if(view!=='library'||$('#query').value.trim())load();else message('Search across your saved posts and extracted attachments.');};
-$('#note-form').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{const inv=await api('investigate',{objective:$('#title').value});if(evidence.length)await api('claim',{investigation_id:inv.id,name:$('#title').value,statement:$('#note').value,evidence,status:'proposed'});else await api('artifact',{investigation_id:inv.id,name:$('#title').value,kind:'note',content:{text:$('#note').value,status:'unverified'}});$('#note-form').reset();evidence=[];$('#citation').textContent='No citations attached.';message('Note saved to Research.');}catch(err){message(err.message);}finally{b.disabled=false;}};
-api('inventory').then(d=>$('#inventory').textContent=`${d.posts.toLocaleString()} saved posts · ${d.sources.likes.toLocaleString()} likes · ${d.sources.bookmarks.toLocaleString()} bookmarks`).catch(e=>message(e.message));
+'use strict';
+
+const $ = selector => document.querySelector(selector);
+const el = (tag, text, cls) => {
+  const node = document.createElement(tag);
+  if (text != null) node.textContent = text;
+  if (cls) node.className = cls;
+  return node;
+};
+let view = 'library';
+// Keep each view's DOM and request lifecycle separate. Navigation is not a search.
+const viewStates = Object.fromEntries(['library', 'research', 'media'].map(key => [key, {
+  key, content: el('div', null, 'result-list'), resultId: null, next: null,
+  generation: 0, busy: false, paging: false, loaded: false, dirty: false,
+  searched: '', mode: 'hybrid', status: '', tone: '', scroll: 0,
+  total: null, loadedCount: 0, completedAt: null, elapsed: null, effectiveMode: null
+}]));
+$('#results').append(viewStates.library.content);
+let density = 'scan';
+try { if (localStorage.getItem('gold-result-layout') === 'read') density = 'read'; } catch { /* Storage is optional. */ }
+function setDensity(value) {
+  density = value === 'read' ? 'read' : 'scan';
+  $('#results').classList.toggle('scan-view', density === 'scan');
+  $('#scan-view').setAttribute('aria-pressed', String(density === 'scan'));
+  $('#read-view').setAttribute('aria-pressed', String(density === 'read'));
+  try { localStorage.setItem('gold-result-layout', density); } catch { /* Keep this session usable. */ }
+}
+$('#scan-view').onclick = () => setDensity('scan');
+$('#read-view').onclick = () => setDensity('read');
+setDensity(density);
+
+let evidence = [], mediaSource = null, pendingInvestigation = null;
+const queries = { library: '', research: '', media: '' };
+const views = {
+  library: ['Sources', 'YOUR LOCAL ARCHIVE', 'Sources', 'Browse your sources. Keep what matters.'],
+  research: ['Notes', 'MAKE SOMETHING OF IT', 'Notes', 'Your notes, findings, and the sources that brought you here.'],
+  media: ['Review queue', 'LOOK A LITTLE CLOSER', 'Review queue', 'Questions about images and videos, ready for a closer look.']
+};
+async function api(operation, args = {}) {
+  const response = await fetch('/api', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operation, args }) });
+  const data = await response.json();
+  if (!response.ok) throw Error(data.error || 'The request could not be completed. Please try again.');
+  return data;
+}
+function message(text, tone = '', state = viewStates[view]) {
+  state.status = text; state.tone = tone;
+  if (state.key !== view) return;
+  $('#message').textContent = text;
+  $('#message').hidden = !text;
+  $('#message').dataset.tone = tone;
+}
+function action(parent, label, fn, cls) {
+  const button = el('button', label, cls);
+  button.type = 'button';
+  button.onclick = async () => {
+    try {
+      const result = fn();
+      if (result && typeof result.then === 'function') { button.disabled = true; await result; }
+    } catch (error) { message(error.message, 'error'); }
+    finally { button.disabled = false; }
+  };
+  parent.append(button);
+  return button;
+}
+function sourceLink(parent, url, label = 'Open source ↗') {
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return;
+    const link = el('a', label); link.href = parsed.href; link.target = '_blank'; link.rel = 'noopener noreferrer'; parent.append(link);
+  } catch { /* Missing or invalid source URLs are not links. */ }
+}
+function disclosure(parent, title, cls = 'evidence-details') {
+  const details = el('details', null, cls); details.append(el('summary', title)); parent.append(details); return details;
+}
+function passageLabel(passage) {
+  const coverage = passage.coverage || passage.role || '';
+  // A thumbnail OCR result must never be presented as analysis of the video.
+  return coverage.includes('thumbnail') ? 'Video thumbnail text only' : coverage.includes('ocr') ? 'Image text · OCR' : coverage.includes('transcript') ? 'Imported transcript' : /interpretation|visual/.test(coverage) ? 'Interpretation' : coverage === 'html_text_only' ? 'Linked page' : /pdf/i.test(coverage) ? 'PDF text' : coverage.includes('quote') ? 'Quoted post' : coverage === 'post' ? 'Post text' : 'Source excerpt';
+}
+function saveDraft() {
+  $('#new-note').textContent = $('#title').value || $('#note').value || evidence.length ? 'Continue note' : '+ New note';
+  try { sessionStorage.setItem('gold-note-draft', JSON.stringify({ title: $('#title').value, note: $('#note').value, evidence, pendingInvestigation })); } catch { /* The editor still works if browser storage is unavailable. */ }
+}
+function updateCitations() {
+  $('#citation').textContent = evidence.length ? `${evidence.length} source excerpt${evidence.length === 1 ? '' : 's'} attached` : 'No sources attached yet. Use “Add to note” on a result.';
+  $('#citation-list').replaceChildren();
+  evidence.forEach((item, index) => {
+    const li = el('li', item.quote.length > 130 ? item.quote.slice(0, 130) + '…' : item.quote);
+    action(li, 'Remove', () => { evidence.splice(index, 1); updateCitations(); saveDraft(); }).setAttribute('aria-label', `Remove source excerpt ${index + 1}`);
+    $('#citation-list').append(li);
+  });
+}
+function openNote() {
+  $('#note-status').textContent = '';
+  $('#note-dialog').showModal();
+  ($('#title').value ? $('#note') : $('#title')).focus();
+}
+function addToNote(row) {
+  const spans = row.supporting_passages || [];
+  for (const p of spans) {
+    const item = { observation_id: p.observation_id, field: p.field || 'text', start: p.start, end: p.end, quote: p.quote };
+    if (!evidence.some(e => e.observation_id === item.observation_id && e.field === item.field && e.start === item.start && e.end === item.end)) evidence.push(item);
+  }
+  updateCitations(); saveDraft(); openNote();
+}
+function renderLibrary(row, card, number, reading = false) {
+  card.classList.add('library-result');
+  const heading = el('div', null, 'card-heading');
+  const rank = el('span', String(number).padStart(2, '0'), 'result-number'); rank.setAttribute('aria-label', `Result ${number}`); heading.append(rank);
+  let domain = 'Saved source';
+  try { domain = new URL(row.url).hostname.replace(/^www\./, ''); } catch { /* No source URL. */ }
+  const byline = el('div', null, 'result-byline'); byline.append(el('h3', row.author ? '@' + row.author.replace(/^@/, '') : 'Saved post'), el('p', domain, 'meta'));
+  heading.append(byline); sourceLink(heading, row.url); card.append(heading);
+  const text = row.text || 'This save has an attachment, but no captured post text.';
+  if (text.length <= 600) card.classList.add('short-post');
+  const body = el('p', reading ? text : text.slice(0, 600) + (text.length > 600 ? '…' : ''), 'post-text'); card.append(body);
+  const unique = [...new Map((row.supporting_passages || []).map(p => [p.quote, p])).values()];
+  if (unique.length) {
+    card.classList.add('has-match');
+    const passage = unique[0];
+    const preview = el('div', null, 'match-preview');
+    if (passage.role === 'post') preview.classList.add('post-match');
+    const quote = passage.quote || '';
+    preview.append(el('p', (row.browsing ? 'SOURCE · ' : 'MATCH · ') + passageLabel(passage), 'passage-label'), el('blockquote', quote.length > 360 ? quote.slice(0, 360) + '…' : quote));
+    card.append(preview);
+    const details = disclosure(card, `Evidence (${unique.length} excerpt${unique.length === 1 ? '' : 's'})`);
+    for (const source of unique) details.append(el('p', passageLabel(source), 'passage-label'), el('blockquote', source.quote));
+  }
+  const actions = el('div', null, 'actions');
+  if (!reading) {
+    const toggle = action(actions, 'Read post', () => {
+      openReader(row, card, number, toggle);
+    }, 'post-toggle'); toggle.setAttribute('aria-expanded', 'false');
+  }
+  const cite = action(actions, '+ Add to note', () => addToNote(row), 'cite-action');
+  if (!unique.length) { cite.disabled = true; cite.title = 'No exact source excerpts available for this result.'; }
+  action(actions, 'Request media review', () => { mediaSource = (row.supporting_passages || []).find(p => p.role !== 'post')?.observation_id || row.observation_id; $('#media-status').textContent = ''; $('#media-form').reset(); $('#media-dialog').showModal(); });
+  card.append(actions);
+  if (row.postedAt) {
+    const date = new Date(row.postedAt);
+    if (!Number.isNaN(date.getTime())) byline.append(el('p', date.toLocaleDateString([], {year:'numeric',month:'short',day:'numeric'}), 'meta'));
+  }
+  if (!row.postedAt) byline.append(el('p', 'Date unavailable', 'meta'));
+  if (reading) {
+    card.classList.add('reader-article');
+    card.append(el('p', unique.length ? [...new Set(unique.map(passageLabel))].join(' · ') : 'No extracted evidence available.', 'coverage-note'));
+  }
+}
+let selectedCard = null, readerTrigger = null, readerScroll = 0;
+function closeReader(restoreFocus = true) {
+  $('#reader').hidden = true;
+  $('#library-workbench').classList.remove('reader-open');
+  if (selectedCard) selectedCard.classList.remove('selected-source');
+  if (readerTrigger) readerTrigger.setAttribute('aria-expanded', 'false');
+  if (restoreFocus && readerTrigger) { readerTrigger.focus(); window.scrollTo({top:readerScroll,behavior:'instant'}); }
+  selectedCard = null;
+}
+function openReader(row, card, number, trigger) {
+  if (selectedCard) selectedCard.classList.remove('selected-source');
+  if (readerTrigger) readerTrigger.setAttribute('aria-expanded', 'false');
+  selectedCard = card; readerTrigger = trigger; readerScroll = window.scrollY;
+  trigger.setAttribute('aria-expanded', 'true');
+  card.classList.add('selected-source');
+  const article = el('article', null, 'source-card');
+  renderLibrary(row, article, number, true);
+  $('#reader-content').replaceChildren(article);
+  $('#reader').hidden = false;
+  $('#library-workbench').classList.add('reader-open');
+  $('#reader').scrollTop = 0;
+  $('#close-reader').focus();
+}
+$('#close-reader').onclick = () => closeReader();
+$('#browse-all').onclick = () => { $('#query').value = ''; load(); };
+function renderResearch(row, card) {
+  card.append(el('h3', row.name), el('p', `${row.kind} · Version ${row.version}`, 'state-tag'));
+  if (row.changed_evidence?.length) card.append(el('p', 'Worth another look: a cited source has a newer captured version.', 'review-warning'));
+  else if (row.newer_corpus_available) card.append(el('p', 'New material has arrived in your library since this note.', 'meta'));
+  const content = row.content;
+  const summary = typeof content === 'string' ? content : content?.statement || content?.text || content?.conclusion || content?.summary;
+  card.append(el('p', typeof summary === 'string' ? summary : 'Open the saved details to explore this finding.', 'research-text'));
+  if (content?.evidence?.length) {
+    const sources = disclosure(card, `${content.evidence.length} cited source excerpt${content.evidence.length === 1 ? '' : 's'} · ${content.status || 'unverified'}`);
+    for (const citation of content.evidence) sources.append(el('blockquote', citation.quote || 'Source reference saved without an excerpt.'));
+  }
+  const details = disclosure(card, 'Saved details'); details.append(el('pre', JSON.stringify(content, null, 2)));
+}
+function renderMedia(row, card) {
+  card.append(el('h3', row.objective), el('p', row.state === 'pending' ? 'Awaiting review' : row.state === 'completed' ? 'Reviewed' : row.state, 'state-tag'));
+  if (row.state === 'completed' && row.result) {
+    const review = el('div'); review.hidden = true; card.append(review);
+    let loaded = false;
+    const read = action(card, 'Read review', async () => {
+      if (!loaded) {
+        const result = typeof row.result === 'string' ? JSON.parse(row.result) : row.result;
+        const [saved] = await api('get', { observation_ids: [result.observation_id] });
+        review.append(el('p', saved.text || saved.raw.text || 'No review text available.', 'research-text'));
+        loaded = true;
+      }
+      review.hidden = !review.hidden; read.textContent = review.hidden ? 'Read review' : 'Hide review';
+      read.setAttribute('aria-expanded', String(!review.hidden));
+    }, 'text-button');
+    read.setAttribute('aria-expanded', 'false');
+  }
+  const sourcePanel = el('div'); sourcePanel.hidden = true; card.append(sourcePanel);
+  let inspected = false;
+  const inspect = action(card, 'Inspect source', async () => {
+    if (!inspected) {
+      const [source] = await api('get', { observation_ids: [row.observation_id] });
+      if (['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(source.raw.mime)) { const image = el('img'); image.src = '/media/' + row.observation_id; image.alt = 'Cached source image for this review'; sourcePanel.append(image); }
+      if (source.raw.text) sourcePanel.append(el('p', source.raw.text, 'post-text'));
+      sourceLink(sourcePanel, source.raw.url);
+      disclosure(sourcePanel, 'Source details').append(el('pre', JSON.stringify(source.raw, null, 2)));
+      inspected = true;
+    }
+    sourcePanel.hidden = !sourcePanel.hidden;
+    inspect.textContent = sourcePanel.hidden ? 'Inspect source' : 'Hide source';
+    inspect.setAttribute('aria-expanded', String(!sourcePanel.hidden));
+  }, 'text-button');
+  inspect.setAttribute('aria-expanded', 'false');
+  if (row.state !== 'pending') return;
+  const form = el('form', null, 'analysis-form');
+  const label = el('label', 'Your analysis or transcript');
+  const area = el('textarea'); area.rows = 4; area.required = true; area.id = 'analysis-' + row.id; label.htmlFor = area.id; area.placeholder = 'Describe what you inspected. Include timecodes for a transcript.';
+  const typeLabel = el('label', 'Review type'); const kind = el('select'); kind.id = 'kind-' + row.id; typeLabel.htmlFor = kind.id;
+  for (const [value, text] of [['visual', 'Visual analysis'], ['transcript', 'Transcript']]) { const option = el('option', text); option.value = value; kind.append(option); }
+  const status = el('p', '', 'form-status'); status.setAttribute('role', 'status');
+  const save = el('button', 'Save review', 'primary');
+  form.append(label, area, typeLabel, kind, status, save);
+  form.onsubmit = async event => {
+    event.preventDefault(); if (!area.value.trim()) { status.textContent = 'Add an analysis or transcript first.'; return; }
+    save.disabled = true;
+    try { await api('complete_media', { request_id: row.id, description: area.value.trim(), kind: kind.value, expected_version: row.version }); viewStates.media.dirty = true; await load('media'); message('Review saved. It’s now available in word search.', '', viewStates.media); }
+    catch (error) { status.textContent = error.message; }
+    finally { save.disabled = false; }
+  };
+  card.append(form);
+}
+function render(rows, state = viewStates[view]) {
+  for (const [index, row] of rows.entries()) {
+    const card = el('article', null, 'source-card');
+    ({ library: renderLibrary, research: renderResearch, media: renderMedia })[state.key](row, card, state.loadedCount + index + 1);
+    state.content.append(card);
+  }
+}
+function emptyState(state) {
+  const view = state.key;
+  const section = el('div', null, 'empty-state');
+  const searched = state.searched;
+  if (view === 'library' && !searched) return;
+  const title = view === 'media' ? 'Nothing waiting for a closer look.' : view === 'research' && !searched ? 'Your next finding belongs here.' : 'No matches this time.';
+  const text = view === 'media' ? 'Request a media review from any source. Your questions will appear here.' : view === 'research' && !searched ? 'Write a note, or start in Sources and add a source to it.' : 'Try fewer words, a different phrase, or a broader idea.';
+  section.append(el('h2', title), el('p', text));
+  if (view === 'research' && !searched) action(section, '+ Write your first note', openNote, 'primary');
+  else if (view === 'media') action(section, 'Explore Sources', () => switchView('library'), 'secondary');
+  else action(section, 'Try another search', () => { $('#query').focus(); $('#query').select(); }, 'secondary');
+  state.content.append(section);
+}
+function syncView(state = viewStates[view]) {
+  if (state.key !== view) return;
+  $('#results').setAttribute('aria-busy', String(state.busy || state.paging));
+  $('#search-submit').disabled = state.busy;
+  $('#more').hidden = state.next == null || state.busy;
+  $('#more').disabled = state.paging;
+  $('#refresh-results').hidden = !state.loaded && !state.busy;
+  $('#refresh-results').disabled = state.busy || state.paging;
+  $('#welcome').hidden = view !== 'library' || state.total !== 0 || !!state.searched || state.busy;
+  $('#main').classList.toggle('showing-results', $('#welcome').hidden);
+  $('#main').classList.toggle('library-view', view === 'library');
+  $('#browse-all').hidden = view !== 'library' || !state.searched;
+  $('#reader').hidden = view !== 'library' || !selectedCard;
+  $('#library-workbench').classList.toggle('reader-open', view === 'library' && !!selectedCard);
+  $('#density-controls').hidden = state.key !== 'library' || !state.loadedCount;
+  $('#search-detail').hidden = !state.completedAt || state.busy || state.tone === 'error';
+  if (state.completedAt) {
+    const mode = state.key === 'library' ? ({ browse: 'Newest posted first · Undated last', keyword: 'Words only', hybrid: 'Words + meaning', semantic: 'Meaning only' })[state.effectiveMode] : state.key === 'research' ? 'Saved notes' : 'Media reviews';
+    const time = new Date(state.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    $('#search-detail').textContent = `${state.loadedCount.toLocaleString()} of ${state.total.toLocaleString()} loaded · ${mode} · Retrieved ${time} in ${(state.elapsed / 1000).toFixed(1)}s`;
+  }
+  message(state.status, state.tone, state);
+}
+async function page(append = false, state = viewStates[view], ticket = state.generation) {
+  const current = state.resultId;
+  const data = await api('result', { result_id: current, offset: append ? state.next : 0, limit: 20 });
+  if (ticket !== state.generation || current !== state.resultId) return;
+  if (!append) { state.content.replaceChildren(); state.loadedCount = 0; }
+  render(data.rows, state); state.loadedCount += data.rows.length; state.next = data.next_offset;
+  if (!append && !data.rows.length) emptyState(state);
+  syncView(state);
+}
+async function load(targetView = view) {
+  const state = viewStates[targetView];
+  const ticket = ++state.generation;
+  if (targetView === 'library') closeReader(false);
+  const startedAt = Date.now();
+  if (targetView === view) queries[targetView] = $('#query').value;
+  state.searched = queries[targetView].trim();
+  if (targetView === 'library') state.mode = $('#mode').value;
+  state.busy = true; state.paging = false; state.dirty = false;
+  state.next = null; state.loadedCount = 0; state.completedAt = null; state.content.replaceChildren();
+  const method = { keyword: 'words', hybrid: 'words + meaning', semantic: 'meaning' }[state.mode];
+  message(targetView === 'library' && !state.searched ? 'Opening your collection…' : targetView === 'library' ? `Searching by ${method} across your collection…` : 'Opening your workspace…', '', state);
+  syncView(state);
+  try {
+    const data = targetView === 'library' ? await api('search_library', { text: state.searched, mode: state.mode }) : targetView === 'research' ? await api('research_search', { text: state.searched }) : await api('media_requests');
+    if (ticket !== state.generation) return;
+    state.resultId = data.receipt.result_id;
+    message('Loading result excerpts…', '', state);
+    await page(false, state, ticket);
+    if (ticket !== state.generation) return;
+    const count = data.receipt.count;
+    state.total = count; state.completedAt = Date.now(); state.elapsed = state.completedAt - startedAt; state.effectiveMode = !state.searched && targetView === 'library' ? 'browse' : data.receipt.fallback ? 'keyword' : state.mode;
+    message(`${count.toLocaleString()} ${targetView === 'media' ? 'review' : targetView === 'research' ? 'finding' : !state.searched ? 'source' : 'result'}${count === 1 ? '' : 's'}${state.searched ? ` for “${state.searched}”` : ''}${data.receipt.fallback ? ' · Meaning search isn’t available. Showing word matches.' : ''}${data.receipt.semantic_index?.workspace_revision_now > data.receipt.semantic_index?.enrichment_revision ? ' · New evidence is available; the meaning index needs a refresh.' : ''}`, '', state);
+  } catch (error) {
+    if (ticket !== state.generation) return;
+    const missingIndex = /index_attachments|model|index.*(missing|unavailable)/i.test(error.message);
+    message(missingIndex ? 'Meaning search isn’t ready yet. You can still search by words.' : /fetch/i.test(error.message) ? 'Couldn’t reach your workspace. Check that the local app is running.' : error.message, 'error', state);
+    const box = el('div', null, 'empty-state');
+    box.append(el('h2', 'Let’s try that again.'), el('p', 'Your collection is still here. Try the search again, or choose a different search method.'));
+    if (targetView === 'library' && state.mode !== 'keyword') action(box, 'Search words instead', () => { $('#mode').value = 'keyword'; return load(); }, 'primary');
+    else action(box, 'Retry', () => load(), 'secondary');
+    state.content.replaceChildren(box);
+  } finally {
+    if (ticket === state.generation) { state.busy = false; state.loaded = true; syncView(state); }
+  }
+}
+function switchView(nextView, updateHistory = true) {
+  if (nextView === view) return;
+  if (updateHistory) window.history?.pushState(null, '', {library:'#sources',research:'#notes',media:'#reviews'}[nextView]);
+  queries[view] = $('#query').value;
+  viewStates[view].scroll = window.scrollY;
+  view = nextView;
+  const state = viewStates[view];
+  for (const button of document.querySelectorAll('[data-view]')) { if (button.dataset.view === view) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); }
+  const [name, eyebrow, title, description] = views[view];
+  $('#eyebrow').textContent = eyebrow; $('#page-title').textContent = title; $('#page-description').textContent = description;
+
+  document.title = 'The Why-Did-I-Like-or-Save-That-inator · ' + name;
+  $('#query').value = queries[view]; $('#query').required = false; $('#query').placeholder = view === 'research' ? 'Find a note or a finding…' : 'Search your collection'; $('#query').setAttribute('aria-label', view === 'research' ? 'Search your notes' : 'Search your sources');
+  $('#mode-label').hidden = view !== 'library'; $('#search').hidden = view === 'media';
+  $('#results').replaceChildren(state.content);
+  syncView(state);
+  if ((!state.loaded || state.dirty) && !state.busy && view !== 'library') load();
+  window.scrollTo({ top: state.scroll, behavior: 'instant' });
+}
+$('#search-form').onsubmit = event => { event.preventDefault(); load(); };
+$('#query').addEventListener('search', () => {
+  if ($('#query').value) return;
+  queries[view] = '';
+  if (view !== 'library') { load(); return; }
+  load();
+});
+$('#refresh-results').onclick = () => {
+  const state = viewStates[view];
+
+  load();
+};
+$('#more').onclick = async () => {
+  const state = viewStates[view], ticket = state.generation;
+  if (state.busy || state.paging || state.next == null) return;
+  state.paging = true; syncView(state);
+  try { await page(true, state, ticket); }
+  catch (error) { if (ticket === state.generation) message(error.message, 'error', state); }
+  finally { if (ticket === state.generation) { state.paging = false; syncView(state); } }
+};
+for (const link of document.querySelectorAll('[data-view]')) link.onclick = event => {
+  if (event?.ctrlKey || event?.metaKey || event?.shiftKey || event?.altKey) return;
+  event?.preventDefault();
+  switchView(link.dataset.view);
+};
+function viewFromLocation() { switchView(({ '#notes':'research', '#reviews':'media' })[window.location?.hash] || 'library', false); }
+window.addEventListener?.('popstate', viewFromLocation);
+viewFromLocation();
+for (const button of document.querySelectorAll('[data-query]')) button.onclick = () => { $('#query').value = button.dataset.query; load(); };
+$('#new-note').onclick = openNote;
+$('#close-note').onclick = () => $('#note-dialog').close();
+$('#close-media').onclick = () => $('#media-dialog').close();
+$('#note-dialog').addEventListener('cancel', event => { if ($('#save-note').disabled) event.preventDefault(); });
+$('#note-form').addEventListener('input', saveDraft);
+$('#note-form').onsubmit = async event => {
+  event.preventDefault(); const title = $('#title').value.trim(), text = $('#note').value.trim();
+  if (!title || !text) { $('#note-status').textContent = 'Add a title and a note before saving.'; return; }
+  const button = $('#save-note'); button.disabled = true; $('#note-status').textContent = 'Saving…';
+  $('#title').readOnly = true; $('#note').readOnly = true; $('#close-note').disabled = true; $('#citation-list').inert = true;
+  try {
+    if (!pendingInvestigation) { pendingInvestigation = (await api('investigate', { objective: title })).id; saveDraft(); }
+    if (evidence.length) await api('claim', { investigation_id: pendingInvestigation, name: title, statement: text, evidence, status: 'proposed' });
+    else await api('artifact', { investigation_id: pendingInvestigation, name: title, kind: 'note', content: { text, status: 'unverified' } });
+    $('#note-form').reset(); evidence = []; pendingInvestigation = null; updateCitations(); saveDraft(); $('#note-dialog').close();
+    viewStates.research.dirty = true;
+    if (view === 'research') await load();
+    message('Note saved. You’ll find it in Notes.');
+  } catch (error) { $('#note-status').textContent = error.message; }
+  finally { button.disabled = false; $('#title').readOnly = false; $('#note').readOnly = false; $('#close-note').disabled = false; $('#citation-list').inert = false; }
+};
+$('#media-form').onsubmit = async event => {
+  event.preventDefault(); const objective = $('#media-objective').value.trim();
+  if (!objective) { $('#media-status').textContent = 'Add a question for the review.'; return; }
+  const button = event.submitter; button.disabled = true;
+  try { await api('request_media', { observation_id: mediaSource, objective }); $('#media-dialog').close(); viewStates.media.dirty = true; message('Review requested. Track it in the review queue.'); }
+  catch (error) { $('#media-status').textContent = error.message; }
+  finally { button.disabled = false; }
+};
+document.addEventListener('keydown', event => {
+  if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey && !['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName) && !event.target.isContentEditable && !document.querySelector('dialog[open]') && view !== 'media') { event.preventDefault(); $('#query').focus(); }
+});
+try { const draft = JSON.parse(sessionStorage.getItem('gold-note-draft') || 'null'); if (draft) { $('#title').value = draft.title || ''; $('#note').value = draft.note || ''; evidence = Array.isArray(draft.evidence) ? draft.evidence : []; pendingInvestigation = draft.pendingInvestigation || null; updateCitations(); saveDraft(); } } catch { /* Ignore unavailable or obsolete draft storage. */ }
+api('inventory').then(data => {
+  $('#library-count').textContent = data.posts.toLocaleString();
+  $('#collection-summary').textContent = `${data.posts.toLocaleString()} posts · ${data.sources.bookmarks.toLocaleString()} bookmarks · Local archive`;
+  $('#inventory').textContent = `${data.posts.toLocaleString()} saved posts · ${data.sources.likes.toLocaleString()} likes · ${data.sources.bookmarks.toLocaleString()} bookmarks`;
+  if (!viewStates.library.busy && !viewStates.library.loaded) load('library');
+  if (!data.posts) { $('#welcome-title').textContent = 'A home for the things you save.'; $('.welcome > p').textContent = 'Sync from the Gold extension or import a backup to get started.'; $('.suggestions').hidden = true; }
+}).catch(() => { $('#inventory').textContent = 'Workspace unavailable'; $('#collection-summary').textContent = 'Local archive unavailable'; message('Couldn’t open the workspace. Check that the local app is running, then reload.', 'error'); });

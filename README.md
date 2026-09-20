@@ -54,13 +54,15 @@ For an image or video that needs closer attention, I can queue a focused media r
 
 ### Phase 3: Locate the gold
 
-The **Library** searches by words, meaning, or both, across captured posts and extracted attachments. Results include supporting excerpts and source links.
+The **Sources** workspace opens straight into the collection, newest posted first, without waiting for a meaning search. Search by words, meaning, or both across captured posts and extracted attachments. Results include supporting excerpts and source links.
+
+Open a post to read it beside the source list on desktop. On mobile, it gets its own reading view, with a way back to exactly where I was. Switching to Notes and back keeps my results and selected source. Apparently remembering where I left something is a feature I had to invent.
 
 So when I want "that tool for archiving bookmarks to Markdown," I can search for the idea instead of reconstructing which stranger mentioned it six months ago.
 
 ### Phase 4: Make the research accumulate
 
-The **Research** workspace keeps notes, cited claims and connections between findings. Earlier versions remain available. Changed captured sources are flagged for review, and conclusions stay distinguishable from original evidence.
+The **Notes** workspace keeps notes and cited findings. The underlying research tools also record connections between findings. Earlier versions remain available. Changed captured sources are flagged for review, and conclusions stay distinguishable from original evidence.
 
 My agents can use Python, the CLI or MCP to retrieve full result sets, branch investigations and resume earlier work. They bring their own reasoning; the invention supplies the workspace. See [the agent operating manual](WORKSPACE.md).
 
@@ -104,12 +106,14 @@ Extraction downloads public linked pages and images; it does not send your colle
 
 ### Which lever does what?
 
-- **Library:** Search sources and inspect the evidence behind a result. Use **Cite in note** to carry exact source spans into research.
-- **Research:** Find saved notes and claims. New claims are proposed findings, not automatically verified facts.
-- **Media requests:** Queue a question about media, inspect the source, and save a visual analysis or transcript. This is a work queue, not an automatic video-understanding service.
+- **Sources:** Browse the collection or search it. Choose **Scan** for compact excerpts or **Read** for fuller cards; **Read post** opens the source reader. Use **Add to note** to carry exact source spans into a note. **Browse all** returns from a search to the collection; **Refresh results** explicitly fetches fresh results.
+- **Notes:** Find saved notes and cited claims, or start with **New note**. The editor retains an unfinished draft in the current tab across reloads; **Save note** writes it to the workspace. New claims are proposed findings, not automatically verified facts.
+- **Review queue:** Queue a question about media, inspect the source, and save a visual analysis or transcript. This is a work queue, not an automatic video-understanding service.
 - **Extension library:** Review captures, keep or dismiss posts, add notes and labels, and export or restore the browser's collection.
 
-The machine does not require you to review thousands of posts one by one. You can start with a question and investigate the relevant evidence.
+Sources and Notes sit in a compact header, with the Review queue alongside them. Direct links and browser Back work between destinations. No enormous control panel. The budget went into the Exposition Chair.
+
+The machine does not require you to review thousands of posts one by one. Browse when you are exploring, or start with a question and investigate the relevant evidence.
 
 ## That is NOT the self-destruct button. It's the backup button.
 
@@ -140,6 +144,6 @@ node scripts/check.cjs
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
-Tests use synthetic data and fake embeddings; no login, personal collection, paid API or model download is required. CI runs on Windows and Linux. See [TESTING.md](TESTING.md) and [ENRICHMENT.md](ENRICHMENT.md).
+Tests use synthetic data and fake embeddings; no login, personal collection, paid API or model download is required. CI runs on Windows and Linux. For a disposable browser preview, run `python scripts/preview_ui.py` and open `http://127.0.0.1:8770`; it uses 24 synthetic posts in a temporary workspace. See [TESTING.md](TESTING.md) and [ENRICHMENT.md](ENRICHMENT.md).
 
 *Built to conquer my bookmarks. The Tri-State Area can wait.*

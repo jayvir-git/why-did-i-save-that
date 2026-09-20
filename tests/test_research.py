@@ -18,6 +18,23 @@ class ResearchTests(unittest.TestCase):
         self.w.import_backup(data=backup('Evidence for retrieval systems.'))
     def tearDown(self):
         self.w.close(); self.tmp.cleanup()
+    def test_browse_is_complete_stable_and_does_not_use_semantics(self):
+        data = backup()
+        for ident, date in [('123457','2025-01-01T00:00:00Z'),('123458',None)]:
+            post = dict(data['posts'][0], id=ident, key='tester:'+ident, postedAt=date)
+            data['posts'].append(post)
+        self.w.import_backup(data=data)
+        with patch.object(self.w, 'attachment_semantic', side_effect=AssertionError('Browse must not embed')):
+            result = self.w.search_library('')
+        rid = result['receipt']['result_id']
+        rows = self.w.result(rid)['rows']
+        self.assertEqual(len(rows), 3)
+        self.assertEqual([r['postedAt'] for r in rows], ['2025-01-01T00:00:00Z','2024-01-01T00:00:00Z',None])
+        for row in rows:
+            for span in row['supporting_passages']:
+                self.assertEqual(self.w.get([span['observation_id']])[0]['text'][span['start']:span['end']], span['quote'])
+        self.w.import_backup(data=backup('A changed post'))
+        self.assertEqual(self.w.result(rid, offset=1, limit=1)['rows'], rows[1:2])
     def test_full_document_coverage_and_exact_bounded_spans(self):
         text=' '.join('word'+str(i) for i in range(1000))+' &amp; conclusion'
         chunks=passages(text,set())

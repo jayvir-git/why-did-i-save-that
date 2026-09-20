@@ -15,7 +15,17 @@ class ResearchMixin:
     def search_library(self, text, mode='hybrid'):
         from .enrichment import enriched_records
         if not text.strip():
-            raise ValueError('Enter a search query')
+            rows = []
+            for p in enriched_records(self):
+                spans = []
+                if p.get('text'):
+                    spans.append({'observation_id':p['observation_id'], 'field':'text', 'role':'post', 'start':0, 'end':min(len(p['text']),600), 'quote':p['text'][:600]})
+                for a in p.get('attachments', []):
+                    if a.get('text') and a.get('observation_id'):
+                        spans.append({'observation_id':a['observation_id'], 'field':'text', 'role':a.get('role','attachment'), 'coverage':a.get('coverage',''), 'start':0, 'end':min(len(a['text']),1200), 'quote':a['text'][:1200]})
+                rows.append({'observation_id':p['observation_id'], 'url':p.get('url',''), 'text':p.get('text',''), 'author':p.get('author',''), 'postedAt':p.get('postedAt'), 'supporting_passages':spans, 'browsing':True})
+            rows.sort(key=lambda r:(r.get('postedAt') or '',r['observation_id']), reverse=True)
+            return self._result(rows, {'query':'', 'mode':'browse', 'method':'All current posts, newest posted date first; undated posts last', 'revision':self.revision()})
         if mode not in ('keyword', 'hybrid', 'semantic'):
             raise ValueError('Unknown search mode')
         candidates = list(enriched_records(self)) if mode != 'semantic' else []
@@ -44,7 +54,7 @@ class ResearchMixin:
                 if match:
                     lo, hi = max(0, match.start()-120), min(len(s['text']), match.end()+300)
                     evidence.append({k: v for k, v in {**s, 'start': lo, 'end': hi, 'quote': s['text'][lo:hi]}.items() if k != 'text'})
-            lexical.append({'observation_id':p['observation_id'], 'url':p['url'], 'text':p['text'], 'author':p.get('author',''), 'score':score, 'supporting_passages':evidence[:3]})
+            lexical.append({'observation_id':p['observation_id'], 'url':p['url'], 'text':p['text'], 'author':p.get('author',''), 'postedAt':p.get('postedAt'), 'score':score, 'supporting_passages':evidence[:3]})
         lexical.sort(key=lambda r: (-r['score'], r['observation_id']))
         semantic = []; warning = None; semantic_receipt = None
         if mode != 'keyword':

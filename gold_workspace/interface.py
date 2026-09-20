@@ -3,7 +3,7 @@ import inspect, json, sys
 from .engine import Workspace
 
 DESCRIPTIONS={
- 'search_library':'Search full captured attachment text with BM25 and optional local semantic rank fusion. Returns exact evidence spans; hybrid falls back visibly when semantic assets are unavailable.',
+ 'search_library':'Empty text browses all current posts newest posted first without semantic inference. Otherwise search full captured attachment text with BM25 and optional local semantic rank fusion. Returns exact evidence spans; hybrid falls back visibly when semantic assets are unavailable.',
  'research_search':'Search latest research artifacts separately from original evidence, including source-version staleness indicators.',
  'connect_research':'Record a version-pinned supports, contradicts, related or supersedes relationship between research artifacts.',
  'request_media':'Queue an on-demand image, audio or video review with an explicit objective. Does not automatically call an external model.',
