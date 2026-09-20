@@ -1,4 +1,8 @@
-# Why did I save that?
+# The Why-Did-I-Like-or-Save-That-Inator
+
+[![Dr. Doofenshmirtz unveiling his Blow-Itself-Up-Inator](https://media1.tenor.com/m/85103ddR6rwAAAAC/phineas-and-ferb-heinz-doofenschmirtz.gif)](https://tenor.com/view/phineas-and-ferb-heinz-doofenschmirtz-inator-blow-itself-up-behold-gif-17554315418709125820)
+
+*Built to conquer my bookmarks. The Tri-State Area can wait.*
 
 A local research workspace for your X likes and bookmarks. Capture posts with a Chrome extension, extract linked evidence, search by words and meaning, and let agents build reusable research with exact citations.
 
