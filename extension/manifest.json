@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "The Why-Did-I-Like-or-Save-That-inator",
   "short_name": "Gold Collector",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Collect your X likes and bookmarks as you browse. Search, review, and export a private local library.",
   "minimum_chrome_version": "111",
   "permissions": [
