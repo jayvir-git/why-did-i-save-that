@@ -1,0 +1,21 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  verify:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m unittest discover -s tests -p "test_*.py"
+      - run: node --test tests/core.test.cjs tests/discovery.test.cjs tests/network.test.cjs tests/startup.test.cjs tests/workspace-sync.test.cjs
+      - run: node scripts/check.cjs
+      - run: node scripts/build.cjs --check
+      - run: node --check gold_workspace/web/app.js

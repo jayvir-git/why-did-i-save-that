@@ -1,0 +1,4 @@
+let discoveryDB;
+function openDiscoveryDB(){return discoveryDB ||= new Promise((resolve,reject)=>{const request=indexedDB.open('gold-discovery',1);request.onupgradeneeded=()=>request.result.createObjectStore('index',{keyPath:'key'});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+async function readDiscovery(){const db=await openDiscoveryDB();return new Promise((resolve,reject)=>{const request=db.transaction('index').objectStore('index').getAll();request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
+async function saveDiscovery(records){const db=await openDiscoveryDB();return new Promise((resolve,reject)=>{const tx=db.transaction('index','readwrite');for(const r of records)tx.objectStore('index').put(r);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Index storage aborted'));});}

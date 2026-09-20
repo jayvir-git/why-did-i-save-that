@@ -1,0 +1,5 @@
+-r requirements-workspace.txt
+rapidocr==3.9.2
+pillow==12.3.0
+pypdf==6.19.0
+trafilatura==2.2.0

@@ -1,0 +1,26 @@
+node_modules/
+artifacts/
+*.zip
+gold-library-*.json
+extension/personal-index.json
+extension/vendor/
+extension/models/
+.runtime/
+workspace-data/
+__pycache__/
+*.pyc
+
+.env
+.env.*
+.venv/
+*.sqlite*
+*.log
+import-args.json
+# Historical private acceptance helpers, retained locally only.
+scripts/real_investigation.py
+scripts/index_check.py
+scripts/discover_saved.py
+scripts/discovery_enrich.py
+scripts/publish_discovery.py
+scripts/preview.py
+tests/*harness*

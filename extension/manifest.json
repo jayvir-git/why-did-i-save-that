@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "The Why-Did-I-Like-or-Save-That-inator",
+  "short_name": "Gold Collector",
+  "version": "1.0.0",
+  "description": "Collect your X likes and bookmarks as you browse. Search, review, and export a private local library.",
+  "minimum_chrome_version": "111",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Gold Collector"
+  },
+  "options_page": "library.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*"
+      ],
+      "js": [
+        "page.bundle.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://x.com/*"
+      ],
+      "js": [
+        "collector.bundle.js"
+      ],
+      "run_at": "document_start",
+      "world": "ISOLATED"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' http://127.0.0.1:8766; worker-src 'self'"
+  },
+  "optional_host_permissions": [
+    "http://127.0.0.1/*"
+  ]
+}

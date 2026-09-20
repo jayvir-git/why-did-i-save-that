@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+<title>Explore the evidence behind your saves</title>
+<style>
+:root{color-scheme:light;--ink:#242923;--muted:#60685d;--line:#d2d6ca;--accent:#285443}*{box-sizing:border-box}body{margin:0;background:#f5f3ed;color:var(--ink);font:16px/1.6 system-ui}main{max-width:1180px;margin:auto;padding:38px 28px}header{max-width:850px}h1{font-size:32px;line-height:1.2;margin:8px 0 18px}h2{font-size:22px}h3{font-size:18px;margin:0 0 8px}p{margin:8px 0 16px}a{color:var(--accent)}small,.muted{color:var(--muted)}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.12em}.stats{display:flex;gap:30px;flex-wrap:wrap;border-block:1px solid var(--line);padding:18px 0;margin:24px 0}.stats strong{display:block;font-size:24px}.controls{position:sticky;top:0;background:#f5f3ed;padding:14px 0;z-index:2;border-bottom:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap}input,select,button{font:inherit;border:1px solid #aab2a3;border-radius:5px;padding:9px 12px;background:#fff;color:var(--ink)}input{flex:1;min-width:230px}button{cursor:pointer}button:hover{background:#e6ebe1}button.active{background:var(--accent);color:#fff}.modes{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.post{border-top:1px solid var(--line);padding:22px 0;display:grid;grid-template-columns:1fr 190px;gap:22px}.post.no-image{grid-template-columns:1fr}.post img{width:100%;max-height:240px;object-fit:contain;background:#e9e8e1}.text{white-space:pre-wrap;overflow-wrap:anywhere}.badge{display:inline-block;background:#e5eadd;padding:2px 7px;font-size:12px;margin:0 6px 8px 0}.assets{margin-top:12px}.assets summary{cursor:pointer;color:var(--accent)}.asset{border-left:2px solid var(--line);padding:8px 14px;margin:12px 0}.asset pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.55 system-ui;max-height:360px;overflow:auto}.asset img{max-width:500px;max-height:650px;width:auto}.notice{border-left:3px solid var(--accent);padding:8px 16px;margin:20px 0}.group-note{max-width:850px}footer{margin:30px 0;color:var(--muted)}#more{margin:15px 0}#state{margin:16px 0}.hidden{display:none!important}@media(max-width:650px){main{padding:22px 16px}.post{grid-template-columns:1fr}.post>div:last-child img{max-width:250px}h1{font-size:27px}.controls{position:static}.stats{gap:20px}select{max-width:100%}}
+</style></head><body><main>
+<header><div class="eyebrow">Your saved collection · local evidence explorer</div><h1>Look beyond the post.</h1><p>The useful part may be a screenshot, a diagram, a book list or a linked page. Explore the recovered content alongside its source and see where interpretation is still missing.</p></header>
+<div class="stats" id="stats"></div>
+<p><a href="tool-research.html">Research result: what your saves can teach this tool</a></p>
+<div class="modes"><button class="active" id="all">All evidence</button><button id="reviewed">Visually reviewed</button><button id="uncertain">Needs context</button></div>
+<div class="controls"><input id="search" aria-label="Search captured post and attachment text" placeholder="Search post text, OCR, pages and visual interpretations…"><select id="group" aria-label="Filter by topic"><option value="">All groups</option></select><button id="reset">Reset</button></div>
+<p id="state" role="status">Loading local evidence…</p><div id="group-note" class="group-note"></div><section id="results"></section><button id="more" class="hidden">Show 20 more</button>
+<details class="notice"><summary>What was actually analyzed?</summary><p id="method"></p><p>Group names describe inspected representatives, not every member. A save does not establish agreement, intent or belief. “Needs context” includes mixed groups, unassigned posts, similarity below 0.35, a margin below 0.025 between the top two groups, or no usable extracted text. These are review heuristics, not calibrated confidence.</p><p>Search checks all words across captured post text, quoted text and complete extracted attachment text, with complete-phrase matches first. Grouping uses bounded excerpts. OCR and agent interpretations remain separate. Image variants can appear in evidence, but are deduplicated for grouping. Full videos have not been watched or transcribed.</p><p><a href="reviewed-discovery.json">Agent grouping data</a> · <a href="refined-corpus.jsonl">Full enriched corpus</a> · <a href="attachment-progress.html">Extraction coverage</a> · <a href="enriched-groups-baseline.html">Previous keyword groups</a></p></details>
+<footer>All records remain in the collection. This explorer does not delete, unlike or unbookmark anything.</footer>
+</main><script>
+'use strict';
+const $=id=>document.getElementById(id);let data,mode='all',matches=[],shown=20;
+const el=(tag,text,cls)=>{const x=document.createElement(tag);if(text!==undefined)x.textContent=text;if(cls)x.className=cls;return x;};
+function link(text,url){const a=el('a',text);try{const u=new URL(url,location.href);if(['http:','https:'].includes(u.protocol)){a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';}}catch{}return a;}
+function image(asset){const im=el('img');im.src=asset.image;im.alt='Captured image attachment; inspect its evidence for interpretation';im.loading='lazy';return im;}
+function uncertain(p){const a=p.assignment;return !a||data.grouping.groups.find(g=>g.id===a.group)?.mixed||a.similarity<.35||a.margin<.025||(!p.text.replace(/https?:\/\/\S+/g,'').trim()&&!p.assets.some(k=>data.assets[k].text?.trim()));}
+function groupLabel(id){return data.grouping.groups.find(g=>g.id===id)?.label||'Unassigned';}
+function renderPost(p){
+ const a=p.assignment, assets=p.assets.map(k=>data.assets[k]), firstImage=assets.find(x=>x.image), article=el('article',undefined,'post'+(firstImage?'':' no-image')), content=el('div');
+ const b=el('span',a?groupLabel(a.group):'No grouping signal','badge');content.append(b);if(uncertain(p))content.append(el('span','Needs context','badge'));
+ const reviews=assets.filter(x=>x.role==='visual_interpretation');if(reviews.length)content.append(el('span','Visual interpretation available','badge'));
+ content.append(link(p.author||'Open original post',p.url));content.append(el('p',p.text.length>650?p.text.slice(0,450)+'…':p.text||'[No primary text]','text'));
+ if(p.text.length>650){const full=el('details');full.append(el('summary','Read full post'),el('p',p.text,'text'));content.append(full);}
+ if(p.quote){const q=el('details');q.append(el('summary','Quoted post text'),el('p',p.quote,'text'));content.append(q);}
+ for(const r of reviews){content.append(el('p',r.text,'text'));if(r.uncertainties?.length)content.append(el('small',r.uncertainties.join(' ')));}
+ if(assets.length){const d=el('details',undefined,'assets');d.append(el('summary',`Inspect ${assets.length} captured evidence items`));
+ for(const v of assets){const section=el('section',undefined,'asset');section.append(el('small',`${v.role} · ${v.coverage}`),el('br'),link('Open attachment source',v.url));
+ if(v.image){section.append(el('br'),image(v));}if(v.text)section.append(el('pre',v.text));else section.append(el('p','No extracted text available.'));
+ if(v.observation_id)section.append(el('small',v.observation_id));d.append(section);}content.append(d);}
+ const provenance=el('details');provenance.append(el('summary','Grouping and source reference'));if(a)provenance.append(el('p',`Local text-model similarity ${a.similarity.toFixed(3)}; alternative: ${groupLabel(a.alternative)}; margin ${a.margin.toFixed(3)}. These describe model proximity, not correctness.`));provenance.append(el('small',p.id));content.append(provenance);
+ article.append(content);if(firstImage){const holder=el('div');holder.append(image(firstImage));article.append(holder);}return article;
+}
+function render(){
+ const terms=$('search').value.toLocaleLowerCase().split(/\s+/).filter(Boolean), group=$('group').value;
+ matches=data.posts.filter(p=>(group===''||(group==='none'?!p.assignment:p.assignment?.group===Number(group)))&&(mode!=='reviewed'||data.reviewedIds.has(p.id))&&(mode!=='uncertain'||uncertain(p))&&terms.every(t=>p.hay.includes(t)));
+ const order=new Map();if(group!==''&&group!=='none')data.grouping.groups.find(g=>g.id===Number(group))?.members.forEach((id,i)=>order.set(id,i));
+ if(order.size)matches.sort((a,b)=>order.get(a.id)-order.get(b.id));else if(mode==='reviewed')matches.sort((a,b)=>data.reviewedOrder.get(a.id)-data.reviewedOrder.get(b.id));
+ if(terms.length){const phrase=$('search').value.trim().toLocaleLowerCase();const rank=p=>(p.text.toLocaleLowerCase().includes(phrase)?4:0)+(p.assets.some(k=>data.assets[k].role==='visual_interpretation'&&data.assets[k].text?.toLocaleLowerCase().includes(phrase))?3:0)+(p.hay.includes(phrase)?2:0);matches.sort((a,b)=>rank(b)-rank(a));}
+ $('state').textContent=`${matches.length.toLocaleString()} posts match · showing ${Math.min(shown,matches.length)}. ${mode==='reviewed'?'Eight images inspected in this pass; this is a targeted sample.':''}`;
+ $('results').replaceChildren(...matches.slice(0,shown).map(renderPost));$('more').classList.toggle('hidden',shown>=matches.length);
+ const g=data.grouping.groups.find(g=>String(g.id)===group);$('group-note').replaceChildren();if(g){$('group-note').append(el('h2',g.label),el('p',g.assessment));if(g.reviewed_ids)$('group-note').append(el('small',`Label reviewed against ${g.reviewed_ids.length} representative posts; membership remains automatic.`));}
+}
+fetch('evidence-explorer-data.json').then(r=>{if(!r.ok)throw Error('Could not load evidence');return r.json();}).then(d=>{
+ data=d;data.reviewedIds=new Set(d.visual_reviews.map(r=>r.post_id));data.reviewedOrder=new Map(d.visual_reviews.map((r,i)=>[r.post_id,i]));
+ for(const p of data.posts)p.hay=[p.text,p.quote,...p.assets.map(k=>data.assets[k].text||'')].join('\n').toLocaleLowerCase();
+ for(const [n,label] of [[d.posts.length,'saved posts'],[d.extraction.extracted_urls,'attachments extracted'],[d.visual_reviews.length,'images visually checked this pass'],[d.grouping.groups.length,'provisional groups']]){const x=el('div');x.append(el('strong',n.toLocaleString()),el('small',label));$('stats').append(x);}
+ for(const g of [...d.grouping.groups].sort((a,b)=>a.label.localeCompare(b.label))){const o=el('option',`${g.label} (${g.count})`);o.value=g.id;$('group').append(o);}const o=el('option',`Unassigned (${d.grouping.unassigned.length})`);o.value='none';$('group').append(o);
+ $('method').textContent=d.grouping.method;render();
+}).catch(e=>{$('state').textContent=e.message;});
+for(const id of ['all','reviewed','uncertain'])$(id).onclick=()=>{mode=id;shown=20;for(const x of ['all','reviewed','uncertain'])$(x).classList.toggle('active',x===id);if(data)render();};
+$('search').oninput=()=>{shown=20;if(data)render();};$('group').onchange=()=>{shown=20;if(data)render();};$('more').onclick=()=>{shown+=20;render();};$('reset').onclick=()=>{$('search').value='';$('group').value='';$('all').click();};
+</script></body></html>
