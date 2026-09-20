@@ -9,8 +9,13 @@ class BridgeTests(unittest.TestCase):
             try:
                 tokenfile=pathlib.Path(folder)/'bridge-token.txt'
                 for _ in range(100):
-                    if tokenfile.exists():break
+                    if process.poll() is not None:raise RuntimeError('Bridge exited before listening')
+                    try:
+                        with socket.create_connection(('127.0.0.1',port),timeout=.1):
+                            if tokenfile.exists():break
+                    except OSError:pass
                     time.sleep(.03)
+                else:raise RuntimeError('Bridge did not become ready')
                 token=tokenfile.read_text();payload=json.dumps({'format':'gold-collector','version':1,'posts':[{'key':'tester:123456','owner':'tester','id':'123456','text':'hello','sources':['likes']}]})
                 def request(token_value,origin=None):
                     connection=http.client.HTTPConnection('127.0.0.1',port,timeout=5)
