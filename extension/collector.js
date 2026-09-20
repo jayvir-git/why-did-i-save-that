@@ -32,8 +32,8 @@
     root.querySelector('#auto').textContent = autoTimer ? 'Pause scrolling' : scrollJob?.state==='paused' ? 'Resume scrolling' : 'Scroll for me';
     root.querySelector('#auto').disabled = !enabled;
     root.querySelector('#hint').textContent = error || lastSaved || 'Stored in this Chrome profile. No uploads.';
-    root.querySelector('#hint').style.color = error ? '#ad3636' : '#68736e';
-    root.querySelector('#led').style.background = enabled ? '#198069' : '#a4aba7';
+    root.querySelector('#hint').style.color = error ? '#ad3636' : '#626269';
+    root.querySelector('#led').style.background = enabled ? '#d5f23b' : '#c4c5be';
   }
   async function toggle() {
     try {
@@ -48,12 +48,18 @@
   function mount() {
     if (!document.body || host) return;
     host = document.createElement('div'); host.id = 'gold-collector-panel';
-    host.style.cssText = 'position:fixed;bottom:20px;right:20px;width:290px;z-index:2147483647;';
+    host.style.cssText = 'position:fixed;bottom:20px;right:20px;width:min(290px,calc(100vw - 40px));z-index:2147483647;';
     root = host.attachShadow({mode:'closed'});
     root.innerHTML = `<style>
       :host{all:initial}*{box-sizing:border-box}.panel{font:13px/1.5 system-ui,sans-serif;background:#fcfbf7;color:#22352e;border:1px solid #cdd8d0;border-radius:16px;padding:18px;box-shadow:0 6px 28px #0002}
       header{display:flex;align-items:center;justify-content:space-between}b{font-size:13px;letter-spacing:.04em}#led{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}#mode{font-size:12px;color:#68736e;margin:5px 0}#count{font-size:34px;font-weight:600;line-height:1.2}small{color:#68736e}#detail,#hint{font-size:11px;margin:8px 0;overflow-wrap:anywhere}button{font:inherit;cursor:pointer;border:1px solid #d0d8d2;border-radius:8px;padding:8px 10px;background:white;color:#244d3e}button:hover{background:#ecf2ec}button:disabled{opacity:.45;cursor:default}#toggle{background:#245b46;color:white;width:100%;margin:8px 0}footer{display:flex;gap:8px}footer button{flex:1}#min{border:0;background:none;padding:0 4px}.compact #body{display:none}
-      </style><section class="panel"><header><b><span id="led"></span>GOLD COLLECTOR</b><button id="min" aria-label="Collapse collector">−</button></header><div id="body"><div id="mode"></div><div id="status"></div><div><span id="count">0</span> <small>new posts this session</small></div><div id="detail"></div><button id="toggle">Start collecting</button><footer><button id="auto">Scroll for me</button><button id="library">Open library</button></footer><div id="hint" role="status"></div></div></section>`;
+
+      .panel{background:#fcfcfa;color:#222126;border:1px solid #95968f;border-top:3px solid #392c45;border-radius:2px;box-shadow:3px 3px 0 #0002;padding:16px}
+      b{font-size:15px;letter-spacing:-.3px}.edition{font:9px Consolas,monospace;color:#626269;margin-left:6px;letter-spacing:.5px}
+      #led{border:1px solid #62694c;width:8px;height:8px}#mode,small{color:#626269}#count{font-family:Consolas,monospace}
+      #detail{padding-bottom:12px;border-bottom:2px dotted #a4a792}button{border-radius:2px;color:#392c45;border-color:#bfc1b7}button:hover{background:#edf0e3}
+      #toggle{background:#392c45;border-color:#392c45;color:#fff}button:focus-visible{outline:2px solid #655078;outline-offset:3px}button:active:not(:disabled){transform:translateY(1px)}
+      </style><section class="panel"><header><b><span id="led"></span>the inator. <span class="edition">COLLECTOR</span></b><button id="min" aria-label="Collapse collector">−</button></header><div id="body"><div id="mode"></div><div id="status"></div><div><span id="count">0</span> <small>new posts this session</small></div><div id="detail"></div><button id="toggle">Start collecting</button><footer><button id="auto">Scroll for me</button><button id="library">Open library</button></footer><div id="hint" role="status"></div></div></section>`;
     document.body.append(host);
     root.querySelector('#toggle').addEventListener('click', toggle);
     root.querySelector('#library').addEventListener('click', () => send({type:'library'}).catch(e => {error=e.message;render();}));

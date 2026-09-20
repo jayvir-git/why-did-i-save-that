@@ -10,3 +10,5 @@ console.log('Extension and workspace JavaScript parse; manifest script paths exi
 const appVersion=JSON.parse(fs.readFileSync(path.join(__dirname,'..','package.json'),'utf8')).version;
 const appHtml=fs.readFileSync(path.join(__dirname,'..','gold_workspace','web','app.html'),'utf8');
 if(!appHtml.includes(`id="app-version">v${appVersion}</span>`) || !appHtml.includes(`aria-label="Local app version ${appVersion}"`))throw new Error('Update the workspace version plate to match package.json');
+
+for(const file of ['popup.html','library.html'])if(!fs.readFileSync(path.join(root,file),'utf8').includes(`v${manifest.version}</span>`))throw new Error(`Update ${file} version plate to match manifest.json`);

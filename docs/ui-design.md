@@ -43,3 +43,9 @@ See [TESTING.md](../TESTING.md) for commands and the browser acceptance checklis
 Controller tests exercise navigation and request lifecycles with a small DOM adapter. Browser checks cover desktop list/reader layouts, narrow mobile navigation, note dialogs, review workflows, and overflow at 320px. Visual checks complement the tests; they are not automated browser coverage. Personal collection measurements and captured content do not belong in this document.
 
 The footer contains an expandable “Inside the invention” guide and a LOCAL version plate. The plate reflects package.json; scripts/check.cjs rejects a mismatched version. The outer margin and frame collapse on mobile to preserve space.
+
+## Collector extension
+
+The popup, capture library, and floating X collector share the workspace identity: neutral surfaces, aubergine primary actions, yellow-green active indicators, amber kept states, crisp borders, and the compact inator wordmark. The capture library uses a wrapping filter bar instead of a fixed sidebar. Capture entry links remain in its footer. Popup and library version plates are checked against the extension manifest.
+
+After changing the extension, rebuild with `node scripts/build.cjs`, reload the unpacked extension at `chrome://extensions`, and reload existing X tabs to update their injected collector. Static browser previews verify layout; collection and bridge behavior require the actual Chrome extension context.

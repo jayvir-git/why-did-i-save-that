@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "The Why-Did-I-Like-or-Save-That-inator",
-  "short_name": "Gold Collector",
+  "short_name": "Inator Collector",
   "version": "1.0.1",
   "description": "Collect your X likes and bookmarks as you browse. Search, review, and export a private local library.",
   "minimum_chrome_version": "111",
@@ -15,7 +15,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Gold Collector"
+    "default_title": "The inator \u00b7 Collector"
   },
   "options_page": "library.html",
   "content_scripts": [
