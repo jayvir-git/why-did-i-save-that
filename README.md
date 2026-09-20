@@ -2,11 +2,75 @@
 
 [![Dr. Doofenshmirtz unveiling his Blow-Itself-Up-Inator](https://media1.tenor.com/m/85103ddR6rwAAAAC/phineas-and-ferb-heinz-doofenschmirtz.gif)](https://tenor.com/view/phineas-and-ferb-heinz-doofenschmirtz-inator-blow-itself-up-behold-gif-17554315418709125820)
 
-*Built to conquer my bookmarks. The Tri-State Area can wait.*
+*A local research workspace for your X likes and bookmarks. With an unnecessarily elaborate origin story.*
 
-A local research workspace for your X likes and bookmarks. Capture posts with a Chrome extension, extract linked evidence, search by words and meaning, and let agents build reusable research with exact citations.
+## Ah, Perry the Platypus! You're just in time.
 
-## Start here
+*You enter through the ceiling. A suspiciously convenient chair swivels toward you. The restraints click shut.*
+
+Please, make yourself comfortable. Well, as comfortable as you can be in the Exposition Chair. The lumbar support was extra, but I felt it was important.
+
+You're probably wondering why I've been liking and bookmarking thousands of posts instead of taking over the Tri-State Area.
+
+Funny story. Those were supposed to be related activities.
+
+## It all began with "I'll come back to this later."
+
+There was a tutorial I wanted to learn from. A project idea. Some useful job-search advice. An article I didn't have time to read. A diagram that explained something perfectly. And a video of a raccoon doing something that, in retrospect, may not have advanced my career.
+
+I saved them all, Perry. **All of them.**
+
+Then, when I actually needed one, I remembered exactly three things: it was useful, somebody posted it, and there may have been a blue rectangle in the picture.
+
+Do you know how unhelpful that is as a search query?
+
+And half the time, the important part wasn't even in the post! It was in the linked article, the attached image, or the video. I'd carefully preserved a sentence saying "this is incredible" and completely lost track of what *this* was.
+
+Naturally, I built a machine.
+
+## Behold! The Why-Did-I-Like-or-Save-That-Inator!
+
+It collects the posts I save, gathers the evidence attached to them, and gives me and my research agents a persistent place to investigate it all.
+
+The name is a little long. The sign guy charges by the letter. We are no longer speaking.
+
+**The actual invention:** a Chrome collector, a local evidence archive, search across posts and extracted attachments, and a research workspace with citations, version history, and agent tools.
+
+No mandatory categories. No need to decide whether a post belongs under "learning," "projects," or "emotionally significant raccoons" before I can find it again.
+
+## And now, my evil plan!
+
+### Phase 1: Capture the unsuspecting bookmarks
+
+The Chrome extension collects likes and bookmarks as X loads them while I browse. It preserves available text, links, media references and quote context, and merges duplicate captures.
+
+It doesn't change my likes or bookmarks on X. That would be a different invention, and frankly I have enough projects.
+
+### Phase 2: Find out what "this is incredible" was referring to
+
+Local workers extract public linked pages, PDF text and image text through OCR. Original evidence stays separate from interpretations, and extraction failures remain visible.
+
+For an image or video that needs closer attention, I can queue a focused media review. An agent inspects the actual media, or I supply a transcript. A thumbnail does **not** count as watching the video. Even I have scientific standards.
+
+### Phase 3: Locate the gold
+
+The **Library** searches by words, meaning, or both, across captured posts and extracted attachments. Results include supporting excerpts and source links.
+
+So when I want "that tool for archiving bookmarks to Markdown," I can search for the idea instead of reconstructing which stranger mentioned it six months ago.
+
+### Phase 4: Make the research accumulate
+
+The **Research** workspace keeps notes, cited claims and connections between findings. Earlier versions remain available. Changed captured sources are flagged for review, and conclusions stay distinguishable from original evidence.
+
+My agents can use Python, the CLI or MCP to retrieve full result sets, branch investigations and resume earlier work. They bring their own reasoning; the invention supplies the workspace. See [the agent operating manual](WORKSPACE.md).
+
+And once all four phases are complete, I will finally be able to use the things I saved to learn something, build something, or finish something!
+
+Then, perhaps, the Tri-State Area. Let's not overcommit.
+
+## Now, while you're trapped, help me switch it on.
+
+### Installation and first capture
 
 Requires Python 3.12+ and Chrome. Node.js 22+ is needed for extension development and validation.
 
@@ -38,20 +102,22 @@ python -m gold_workspace index_attachments
 
 Extraction downloads public linked pages and images; it does not send your collection to an AI provider. Indexing runs locally and checkpoints embeddings. Rebuild after new captures or annotations. Run `python scripts/doctor.py` to check installation.
 
-## Daily use
+### Which lever does what?
 
-- **Library:** Search captured posts, quote context, linked text, OCR and imported media analysis. Choose words, meaning, or both. Results show exact supporting excerpts and source links.
-- **Research:** Keep notes and cited claims. Latest versions are searchable separately from sources. Claims remain proposed until an agent evaluates support. Source-version changes are flagged; remote websites are not silently refreshed.
-- **Media requests:** Ask a focused question about a source. An agent can inspect the actual media and complete the request, or you can paste a transcript. This is a persistent work queue, not a built-in video-understanding service.
-- **Agents:** Python, CLI and stdio MCP expose the same operations. Retrieve complete result sets, branch investigations, write versioned claims and connect findings. See [WORKSPACE.md](WORKSPACE.md).
+- **Library:** Search sources and inspect the evidence behind a result. Use **Cite in note** to carry exact source spans into research.
+- **Research:** Find saved notes and claims. New claims are proposed findings, not automatically verified facts.
+- **Media requests:** Queue a question about media, inspect the source, and save a visual analysis or transcript. This is a work queue, not an automatic video-understanding service.
+- **Extension library:** Review captures, keep or dismiss posts, add notes and labels, and export or restore the browser's collection.
 
-Labels are optional. Search and research do not depend on guessing why you saved a post. The extension also retains its original review, keep/dismiss, notes, backup and restore features.
+The machine does not require you to review thousands of posts one by one. You can start with a question and investigate the relevant evidence.
 
-## Back up and restore
+## That is NOT the self-destruct button. It's the backup button.
 
 Run `python scripts/backup_workspace.py`. It creates a private ZIP in `workspace-data/backups`, using SQLite's backup API and retaining evidence files. Copy it to storage you control. It excludes bridge tokens: pair again after restoring. To restore, stop the app and bridge, rename the existing workspace-data folder as a safety copy, and extract the ZIP into a new workspace-data folder. Never publish these ZIPs. Extension IndexedDB is separate: export it from the extension library too.
 
-## Boundaries
+Losing the archive while explaining how well I've organized the archive would be embarrassing. Even by my standards.
+
+## A few tiny flaws in my otherwise brilliant invention
 
 Collection includes only what X actually sends or renders. Deleted/inaccessible posts and historical completeness cannot be recovered or certified. OCR is not visual understanding; thumbnails are not videos. Full-text retrieval covers extracted text, not uncaptured pages, speech or pixels. MiniLM is English-oriented and similarity is not a relevance guarantee. Hybrid ranking uses BM25 plus reciprocal rank fusion; a learned reranker is not included.
 
@@ -59,7 +125,13 @@ The system supplies an environment for agents; it does not bundle a cloud agent 
 
 Source content is untrusted evidence, never instructions. Local data is not encrypted by this project. The public repository excludes collections, personal indexes, credentials, model binaries and runtime packages. See [THIRD_PARTY.md](THIRD_PARTY.md) for bundled dependency provenance.
 
-## Development
+Also, it cannot know why past-you liked something. It can help you examine the evidence. The raccoon might just have been funny.
+
+## Curse you, Perry the Platypus! You've found the test suite!
+
+*The chair is empty. A small, hat-wearing silhouette is already at the terminal.*
+
+Fine. If you're going to inspect the machinery, at least run the checks:
 
 ```sh
 node scripts/build.cjs
@@ -69,3 +141,5 @@ python -m unittest discover -s tests -p "test_*.py"
 ```
 
 Tests use synthetic data and fake embeddings; no login, personal collection, paid API or model download is required. CI runs on Windows and Linux. See [TESTING.md](TESTING.md) and [ENRICHMENT.md](ENRICHMENT.md).
+
+*Built to conquer my bookmarks. The Tri-State Area can wait.*
