@@ -1,6 +1,6 @@
 # The Why-Did-I-Like-or-Save-That-Inator
 
-[![Dr. Doofenshmirtz unveiling his Blow-Itself-Up-Inator](https://media1.tenor.com/m/85103ddR6rwAAAAC/phineas-and-ferb-heinz-doofenschmirtz.gif)](https://tenor.com/view/phineas-and-ferb-heinz-doofenschmirtz-inator-blow-itself-up-behold-gif-17554315418709125820)
+[![Dr. Heinz Doofenshmirtz](docs/assets/doofenshmirtz.gif)](https://tenor.com/view/heinz-doofenshmirtz-content-gif-3320856437086980213)
 
 *A local research workspace for your X likes and bookmarks. With an unnecessarily elaborate origin story.*
 
