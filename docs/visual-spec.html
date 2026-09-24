@@ -348,12 +348,12 @@
       "acceptance": "Submit a new query while reading; selection clears and pending feedback appears.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 330,
+        "line": 336,
         "anchor": "async function load"
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 200,
+        "line": 214,
         "anchor": "Browse all clears"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -368,12 +368,12 @@
       "acceptance": "An old query finishes last; the newer query remains on screen.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 324,
+        "line": 330,
         "anchor": "ticket !== state.generation"
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 133,
+        "line": 147,
         "anchor": "a late search response"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -388,12 +388,12 @@
       "acceptance": "Load more appends rows and continues ordinals.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 323,
+        "line": 329,
         "anchor": "offset: append ? state.next : 0, limit: 20"
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 156,
+        "line": 170,
         "anchor": "result ordinals"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -408,7 +408,7 @@
       "acceptance": "Detect external evidence while reading; the reader stays selected.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 624,
+        "line": 633,
         "anchor": "async function refreshPreservingReader"
       },
       "test": {
@@ -428,7 +428,7 @@
       "acceptance": "Complete a review externally; show an update notice without replacing the reader.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 597,
+        "line": 606,
         "anchor": "async function refreshStatus"
       },
       "test": {
@@ -448,12 +448,12 @@
       "acceptance": "Open #actions directly and navigate Back.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 412,
+        "line": 418,
         "anchor": "function viewFromLocation"
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 210,
+        "line": 224,
         "anchor": "destination links"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -473,7 +473,7 @@
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 145,
+        "line": 159,
         "anchor": "changing Scan/Read"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -541,7 +541,7 @@
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 167,
+        "line": 181,
         "anchor": "thumbnail OCR"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -604,7 +604,7 @@
       "acceptance": "Drop the response after commit; one note exists and its receipt resolves.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 38,
+        "line": 39,
         "anchor": "def save_note"
       },
       "test": {
@@ -664,7 +664,7 @@
       "acceptance": "Inspect the stored status of a cited and an uncited note.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 38,
+        "line": 39,
         "anchor": "def save_note"
       },
       "test": null,
@@ -680,12 +680,12 @@
       "acceptance": "A returned usage error leaves the draft intact and Save enabled.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 425,
+        "line": 431,
         "anchor": "$('#title').readOnly = true"
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 261,
+        "line": 275,
         "anchor": "failed note saves"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -720,7 +720,7 @@
       "acceptance": "Choose attachment B among multiple references; the submitted observation is B.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 489,
+        "line": 495,
         "anchor": "async function openMediaPicker"
       },
       "test": {
@@ -735,12 +735,12 @@
       "area": "Reviews",
       "title": "Queueing is durable, not execution",
       "status": "Implemented",
-      "rule": "queue_review records a pending request with a replayable receipt. Starting Codex is a separate explicit action.",
+      "rule": "queue_review records a pending request with a replayable receipt. Starting the selected provider is a separate explicit action.",
       "consequence": "Queueing still does not silently spend agent usage.",
       "acceptance": "Queue a source, then start one tracked run explicitly.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 51,
+        "line": 52,
         "anchor": "def queue_review"
       },
       "test": {
@@ -755,12 +755,12 @@
       "area": "Reviews",
       "title": "Tracked agent execution is observable",
       "status": "Implemented",
-      "rule": "Runs started here use the local Codex CLI and persist actual acknowledgment, failures, heartbeat and draft results.",
+      "rule": "Runs started here use the selected Codex or Claude Code CLI and persist actual acknowledgment, failures, heartbeat and draft results.",
       "consequence": "Externally started agents remain unobserved. Missing sign-in and quota failures are blocked states, not silent pending work.",
       "acceptance": "A provider quota failure persists as blocked across page reload.",
       "source": {
         "path": "gold_workspace/runner.py",
-        "line": 88,
+        "line": 96,
         "anchor": "def run_codex"
       },
       "test": {
@@ -775,12 +775,12 @@
       "area": "Reviews",
       "title": "Accepted drafts become derived evidence",
       "status": "Implemented",
-      "rule": "save_review atomically commits derived evidence, completion, annotation and request receipt. Codex output is a draft until the user saves it.",
+      "rule": "save_review atomically commits derived evidence, completion, annotation and request receipt. Agent output is a draft until the user saves it.",
       "consequence": "Words see new evidence; the meaning index needs a rebuild. Original text is retained.",
       "acceptance": "Retry a committed completion with the same request ID; no second resource is created.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 63,
+        "line": 64,
         "anchor": "def save_review"
       },
       "test": {
@@ -800,7 +800,7 @@
       "acceptance": "Replay the same completion, then submit a conflicting one.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 63,
+        "line": 64,
         "anchor": "def save_review"
       },
       "test": {
@@ -841,7 +841,7 @@
       },
       "test": {
         "path": "tests/workspace-ui.test.cjs",
-        "line": 240,
+        "line": 254,
         "anchor": "a request that never responds"
       },
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
@@ -856,7 +856,7 @@
       "acceptance": "Inject a quota failure; show blocked status and a retry action.",
       "source": {
         "path": "gold_workspace/runner.py",
-        "line": 23,
+        "line": 25,
         "anchor": "def failure"
       },
       "test": {
@@ -876,7 +876,7 @@
       "acceptance": "Lose a committed save response; recover it without another note.",
       "source": {
         "path": "gold_workspace/web/app.js",
-        "line": 461,
+        "line": 467,
         "anchor": "async function durableWrite"
       },
       "test": {
@@ -1156,7 +1156,7 @@
       "acceptance": "Mark done without an outcome and receive validation; add outcome and save.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 129,
+        "line": 130,
         "anchor": "def save_source_action"
       },
       "test": {
@@ -1172,11 +1172,11 @@
       "title": "Workers have observable lifecycles",
       "status": "Implemented",
       "rule": "Tracked work can be queued, starting, running, ready, succeeded, blocked, failed, interrupted or cancelled. Heartbeats older than 45 seconds are interrupted.",
-      "consequence": "A ready Codex draft is not completed review evidence. Extraction or index work can succeed separately.",
+      "consequence": "A ready agent draft is not completed review evidence. Extraction or index work can succeed separately.",
       "acceptance": "Cancel a run; a late result must not change it to ready.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 179,
+        "line": 185,
         "anchor": "def work_status"
       },
       "test": {
@@ -1196,7 +1196,7 @@
       "acceptance": "Capture a referenced URL and refresh coverage; refuse a URL unrelated to the source.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 85,
+        "line": 86,
         "anchor": "def source_targets"
       },
       "test": {
@@ -1216,7 +1216,7 @@
       "acceptance": "Submit the same note concurrently through two connections; one artifact commits.",
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 20,
+        "line": 21,
         "anchor": "def _receipt"
       },
       "test": {
@@ -1249,14 +1249,14 @@
     {
       "id": "D66",
       "area": "Boundaries",
-      "title": "Codex receives only the selected input",
+      "title": "Providers receive selected input",
       "status": "Implemented",
-      "rule": "A Codex review runs ephemerally in a temporary directory with a read-only sandbox and no user configuration. Only selected text and a supported cached image are supplied.",
+      "rule": "Codex uses an ephemeral read-only sandbox without user configuration. Claude uses a temporary directory, safe mode, no built-in tools, empty strict MCP and no session persistence. Selected text and a supported cached image are supplied.",
       "consequence": "The selected source is sent to the signed-in provider and consumes account usage. The UI explains this at the Start action.",
       "acceptance": "Inspect the spawned argument vector and prompt; no whole-library prompt or workspace-write permission.",
       "source": {
         "path": "gold_workspace/runner.py",
-        "line": 96,
+        "line": 115,
         "anchor": "args=[executable,'exec'"
       },
       "test": {
@@ -1264,6 +1264,82 @@
         "line": 86,
         "anchor": "self.assertIn('read-only'"
       },
+      "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
+    },
+    {
+      "id": "D67",
+      "area": "Setup",
+      "title": "Baseline setup is repeatable",
+      "status": "Implemented",
+      "rule": "Default setup checks Python and SQLite, runs a disposable workflow and generates absolute-path MCP configuration without downloads or provider calls.",
+      "consequence": "Optional packages/assets require explicit --with flags. Sign-in and collection remain human steps.",
+      "acceptance": "Run setup twice in a clean copy from another directory.",
+      "source": {
+        "path": "scripts/setup.py",
+        "line": 29,
+        "anchor": "def setup"
+      },
+      "test": {
+        "path": "tests/test_setup.py",
+        "line": 13,
+        "anchor": "def test_mcp_config"
+      },
+      "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
+    },
+    {
+      "id": "D68",
+      "area": "Reviews",
+      "title": "Provider choice persists with the run",
+      "status": "Implemented",
+      "rule": "Review provider is codex or claude. Old runs default to Codex; one active attempt per review deduplicates across providers.",
+      "consequence": "Retry retains the provider. Switching an active review requires cancellation.",
+      "acceptance": "Start Claude, request Codex on the same review and observe the existing Claude run.",
+      "source": {
+        "path": "gold_workspace/workflows.py",
+        "line": 156,
+        "anchor": "def start_work"
+      },
+      "test": {
+        "path": "tests/test_providers.py",
+        "line": 26,
+        "anchor": "def test_provider_persists"
+      },
+      "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
+    },
+    {
+      "id": "D69",
+      "area": "Setup",
+      "title": "Fresh acceptance uses no personal archive",
+      "status": "Implemented",
+      "rule": "A clean temporary checkout omits runtime, models and private data, runs setup twice and launches the generated MCP command from elsewhere.",
+      "consequence": "Offline baseline tests do not prove optional installs or live provider authentication.",
+      "acceptance": "Run check_fresh_install.py; no models are downloaded.",
+      "source": {
+        "path": "scripts/check_fresh_install.py",
+        "line": 12,
+        "anchor": "def check"
+      },
+      "test": {
+        "path": "scripts/check_fresh_install.py",
+        "line": 12,
+        "anchor": "def check"
+      },
+      "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
+    },
+    {
+      "id": "D70",
+      "area": "Setup",
+      "title": "Agent instructions have explicit entry points",
+      "status": "Implemented",
+      "rule": "AGENTS.md and CLAUDE.md link to one setup guide with commands, capabilities, human handoffs and verification limits.",
+      "consequence": "A remote-only harness cannot access a local archive without a supported connection.",
+      "acceptance": "Follow the baseline prompt using shell or local stdio MCP.",
+      "source": {
+        "path": "docs/agent-start.md",
+        "line": 1,
+        "anchor": "# Start with your agent"
+      },
+      "test": null,
       "rationale": "Historical rationale not established by this audit; consequence is analysis of the current behavior."
     }
   ],
@@ -1423,10 +1499,11 @@
         },
         {
           "id": "starting",
-          "label": "Start Codex explicitly",
+          "label": "Choose provider and start",
           "decisions": [
             "D40",
-            "D66"
+            "D66",
+            "D68"
           ],
           "owner": "Person + local worker",
           "persisted": "Run ID",
@@ -1434,11 +1511,11 @@
         },
         {
           "id": "running",
-          "label": "Codex acknowledged",
+          "label": "Provider acknowledged",
           "decisions": [
             "D62"
           ],
-          "owner": "Codex process",
+          "owner": "Provider process",
           "persisted": "Heartbeat + last activity",
           "status": "Implemented"
         },
@@ -1460,7 +1537,7 @@
             "D40",
             "D62"
           ],
-          "owner": "Codex + worker",
+          "owner": "Provider + worker",
           "persisted": "Unpublished draft",
           "status": "Implemented"
         },
@@ -1496,12 +1573,12 @@
         {
           "source": "pending",
           "target": "starting",
-          "label": "Start Codex review"
+          "label": "Start selected provider"
         },
         {
           "source": "starting",
           "target": "running",
-          "label": "thread.started / turn.started"
+          "label": "Codex thread/turn or Claude init"
         },
         {
           "source": "starting",
@@ -2209,6 +2286,102 @@
         }
       ],
       "gap": "Polling shows committed external updates without replacing the reader. Accepting refresh preserves selection and scroll. Remote source changes still require capture."
+    },
+    {
+      "id": "setup",
+      "title": "Agent setup and first use",
+      "question": "Can a fresh agent use this workspace without guessing?",
+      "nodes": [
+        {
+          "id": "entry",
+          "label": "Read agent entry point",
+          "decisions": [
+            "D70"
+          ],
+          "owner": "Agent",
+          "persisted": "Shared setup guide",
+          "status": "Implemented"
+        },
+        {
+          "id": "baseline",
+          "label": "Run setup",
+          "decisions": [
+            "D67"
+          ],
+          "owner": "Local Python",
+          "persisted": "Prerequisite checks",
+          "status": "Implemented"
+        },
+        {
+          "id": "demo",
+          "label": "Verify disposable workflow",
+          "decisions": [
+            "D69"
+          ],
+          "owner": "CLI + MCP",
+          "persisted": "Synthetic search and cited note",
+          "status": "Implemented"
+        },
+        {
+          "id": "config",
+          "label": "Generate connection",
+          "decisions": [
+            "D67"
+          ],
+          "owner": "Setup",
+          "persisted": "Absolute-path MCP config",
+          "status": "Implemented"
+        },
+        {
+          "id": "human",
+          "label": "Connect personal capabilities",
+          "decisions": [
+            "D70"
+          ],
+          "owner": "Person",
+          "persisted": "Sign-in, pairing, collection choice",
+          "status": "Implemented"
+        },
+        {
+          "id": "use",
+          "label": "Use workspace",
+          "decisions": [
+            "D68",
+            "D64"
+          ],
+          "owner": "Agent + person",
+          "persisted": "Search, notes, optional tracked review",
+          "status": "Implemented"
+        }
+      ],
+      "edges": [
+        {
+          "source": "entry",
+          "target": "baseline",
+          "label": "One setup command"
+        },
+        {
+          "source": "baseline",
+          "target": "demo",
+          "label": "No provider calls"
+        },
+        {
+          "source": "demo",
+          "target": "config",
+          "label": "Only after verification"
+        },
+        {
+          "source": "config",
+          "target": "human",
+          "label": "Explicit handoffs"
+        },
+        {
+          "source": "human",
+          "target": "use",
+          "label": "Authorized data and provider"
+        }
+      ],
+      "gap": "The offline baseline is verified independently of optional downloads and account access. Live authenticated Claude remains unverified on this development machine."
     }
   ],
   "gaps": [
@@ -2222,8 +2395,8 @@
         "D47"
       ],
       "problem": "A pending review says nothing about whether an agent ran.",
-      "proposal": "Local Codex runner with persistent acknowledgment, heartbeat, quota/configuration errors, cancellation and drafts.",
-      "remaining": "Installed and signed-in Codex is required. Work launched elsewhere remains unobserved.",
+      "proposal": "Local Codex/Claude runners with persistent acknowledgment, heartbeat, quota/configuration errors, cancellation and drafts.",
+      "remaining": "Selected CLI must be installed and signed in. Live Claude verification remains pending. External sessions remain unobserved.",
       "acceptance": "An injected quota error reaches the request it belongs to; UI shows blocked and a retry path without losing evidence.",
       "status": "Implemented"
     },
@@ -2344,7 +2517,7 @@
       ],
       "steps": [
         "Queue the selected source",
-        "Start Codex review explicitly",
+        "Choose provider and start explicitly",
         "Provider returns a usage error",
         "Worker persists blocked status and retry guidance"
       ],
@@ -2494,7 +2667,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 38,
+        "line": 39,
         "anchor": "def save_note"
       }
     },
@@ -2516,7 +2689,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 34,
+        "line": 35,
         "anchor": "def action_outcome"
       }
     },
@@ -2546,7 +2719,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 51,
+        "line": 52,
         "anchor": "def queue_review"
       }
     },
@@ -2591,7 +2764,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 63,
+        "line": 64,
         "anchor": "def save_review"
       }
     },
@@ -2613,7 +2786,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 85,
+        "line": 86,
         "anchor": "def source_targets"
       }
     },
@@ -2629,7 +2802,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 110,
+        "line": 111,
         "anchor": "def workspace_status"
       }
     },
@@ -2648,6 +2821,10 @@
           },
           "target": {
             "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "default": "codex"
           }
         },
         "required": [
@@ -2659,7 +2836,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 155,
+        "line": 156,
         "anchor": "def start_work"
       }
     },
@@ -2683,7 +2860,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 179,
+        "line": 185,
         "anchor": "def work_status"
       }
     },
@@ -2705,7 +2882,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 186,
+        "line": 196,
         "anchor": "def cancel_work"
       }
     },
@@ -2755,7 +2932,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 129,
+        "line": 130,
         "anchor": "def save_source_action"
       }
     },
@@ -2777,7 +2954,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 146,
+        "line": 147,
         "anchor": "def source_action"
       }
     },
@@ -2793,7 +2970,7 @@
       },
       "source": {
         "path": "gold_workspace/workflows.py",
-        "line": 151,
+        "line": 152,
         "anchor": "def source_actions"
       }
     },
@@ -4156,6 +4333,7 @@
     }
   ],
   "fingerprints": {
+    "docs/agent-start.md": "bd7f62cc1f38bff3f826beae8b544df7bf2a22767917a20a524f7439840b9854",
     "docs/ui-design.md": "8eba1521e0b84e10b24f0969bd264bf92cf5eef6092b898eb24ef6b5effca4b6",
     "extension/core.js": "c412080138c37d9b0b47ae2ab19d5414469a6bab2724fd90a8d74c7ef800dcce",
     "extension/library.js": "e4a1c46eb4d9df18c544c1c1d7f7c21bdd44b60601a599f3feba2098ece558dd",
@@ -4167,27 +4345,31 @@
     "gold_workspace/engine.py": "1902c7668ea0084a8501e9e9d7522bc64c89ecaa8ff5fb60232d0e1c75e54ed4",
     "gold_workspace/fetching.py": "9063eb20da9ba027a19e7df90e6120aeaac99cf9783931ca28f5d375fc8750fe",
     "gold_workspace/jobs.py": "0a75f6e6e8839a0347ad27f4fc703afe9fc9fb41c4f55892b24dda4ed3e8eabd",
-    "gold_workspace/research.py": "54d9468f363b7b45bb171b26c03bee9fac82a416a5b05114bab413be41280edd",
-    "gold_workspace/runner.py": "c96f95afff5840c3da1fc6a788fd44c17297cf3a59a077aa2a1121107545c609",
+    "gold_workspace/research.py": "d439ef81ad6788c4cc3c21f768031f17d6ec20bdd0530498d56978ee97849dc0",
+    "gold_workspace/runner.py": "58a48c0561a0e43cb604e7098d4290b913902056c4822c1ef30d4dc7c3db291d",
     "gold_workspace/semantic.py": "2099646cd01f821eb84eccf8c6f85b6149f3b73c40d08d8581a248ec52c30518",
     "gold_workspace/web/app.css": "65560156f4f5a8810478aa55411547f0c52738f574b1d34a1de95840d985e17c",
     "gold_workspace/web/app.html": "50ac23b61265c8212fa492d0968fb66520adedc3c3cd3290fc8350b506e95b9b",
-    "gold_workspace/web/app.js": "567cdf5d01b89ffb3cfaf138259405371791201c81725ae05b7dac4e2525f201",
-    "gold_workspace/workflows.py": "b634b39827574b6cc7fad4b10a6382914c16d4b186ff2fa52b010a77a904f8be",
+    "gold_workspace/web/app.js": "0e26acb6a233f5da86a483a54689586db1c38ed5bb5485e86750bdd9cfe0400c",
+    "gold_workspace/workflows.py": "ef427ea573cc7e15ecb8a01614559c99e179992250ed501d10d0c412255af9a2",
     "scripts/backup_workspace.py": "411665354f1f70e874335820b6a1d1bbcd2de9a922c8467c02c2881225caad3c",
     "scripts/benchmark_search.py": "f907ce7e3a0055e651387814cf8d06e392f38546c8ad4555e6c36f0a6c2d71e6",
     "scripts/check.cjs": "45c6ddeab82afbd2b307dfbc51f73a6d1892b479a865c3f7eada851384672f61",
+    "scripts/check_fresh_install.py": "c3576b00ad88c97f634ca985842016a51fc6e948118899f08e01fae2e380d57d",
     "scripts/check_workflows.cjs": "69d21891a645901322904446643dec7e07f475559d12519e6e75b82fba519e11",
+    "scripts/setup.py": "f3a62842c33cc49a015e65e817efd6fe85a675dace33bb60c4e9cf4ab0dd9be1",
     "tests/core.test.cjs": "55880a89203653d6c804621d5af362699f8c04e9718419860fe30f07b1f7a1a4",
     "tests/discovery.test.cjs": "bda434dbd30387bd1f6b4a63cdc915215eb7f10c356e49002cefd2ae34bc29d4",
     "tests/network.test.cjs": "68a1df924274ffa10deec11c9131fa6b99581cb476d7c62e37cc5453105e0d27",
     "tests/test_attachment_search.py": "bd2e734a046f1babcb73bd5e42db19c0c88b75131d4094c056d4e50f2da078a7",
     "tests/test_bridge.py": "1e76bcf6a50aad570ca742959c298c620c146fdfbf6892926c559839c7076767",
+    "tests/test_providers.py": "c3c424bf0001c478819a1d7254abdc4b1e43e9002e34493bc3849512bc48de81",
     "tests/test_research.py": "28a10e0675431f3c3923aaa36bca20e0724168ae154af4b25c94fe6a9a128ccf",
+    "tests/test_setup.py": "47cabbf441973fb7920a0d8e72c7eb95a9fbaa39dc1b8ba0d85929afe39e66fc",
     "tests/test_workflows.py": "6bbc4eac04e3f396a8a8f3736d83978368356b9b168527f0b13e8c6f98ba362e",
     "tests/test_workspace.py": "21feadf4f75a4846a0a5864668f96520d24296d0eca1691fa5748cce5fcb03fc",
     "tests/workspace-sync.test.cjs": "02c97ce46a1e04120b9a942f5f752a57b94d44569e1da22994b3148267481ee8",
-    "tests/workspace-ui.test.cjs": "1afe26aff6d54b956d7ccc868bc33640ec49b814d097d1c38e5d520a1c10795f"
+    "tests/workspace-ui.test.cjs": "aff1057ceb93284a0a4e33942f17f1865533ff6a5405ff78e4c68aad6ae5794d"
   },
   "scope": "Sources/Notes UI plus its capture, evidence, job and storage boundaries. Code inspection with linked regression tests; not a claim that every behavior has been browser-tested or that every historical design rationale is known.",
   "omissions": [

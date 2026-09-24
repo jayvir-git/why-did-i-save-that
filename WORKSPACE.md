@@ -33,6 +33,8 @@ Use `plan_enrichment`, `create_job`, `run_job`, `job`, `retry_job`, and `cancel_
 
 ## MCP
 
+For repeatable setup and a disposable end-to-end check, run `python scripts/setup.py`; see [agent setup](docs/agent-start.md). The generated configuration uses absolute interpreter, launcher and workspace paths. Claude Code can load it with `claude --mcp-config workspace-data/mcp.json`.
+
 Run `python scripts/mcp_config.py` for configuration containing absolute paths to your Python interpreter and scripts/workspace.py. Add that configuration to your agent client's MCP settings. This is not installed automatically. The stdio server runs with `python -m gold_workspace mcp` and reserves stdout for newline-delimited JSON-RPC. CLI and MCP share the operation catalog.
 
 ## Capture bridge and app
@@ -59,3 +61,12 @@ The web app now uses `save_note`, `queue_review`, `save_review` and `save_source
 Codex review uses the installed `codex exec --json` protocol, an ephemeral temporary working directory, `--ignore-user-config`, and a read-only sandbox. `GOLD_CODEX_BIN` can identify an installed executable when it is not on PATH. Authentication remains in the CLI. The app supplies only selected text (bounded at 60,000 characters with a truncation marker) and an optional supported cached image. The selected content goes to the signed-in provider and uses its allowance, as disclosed beside Start. No automatic provider retry or usage-credit purchase occurs. See [official non-interactive mode documentation](https://developers.openai.com/codex/noninteractive/). A successful structured answer becomes a review draft, not automatically published evidence. Full video/audio processing is not implemented.
 
 `workspace_status` polls revision tokens every five seconds while visible and offers update notices. Accepting refresh preserves source selection and scroll. The Actions destination records a personal reason, next action, optional date and completion outcome; completion requires an outcome. Actions use version checks and durable receipts. One action is stored per captured source observation.
+
+
+## Review providers
+
+`start_work(..., kind="review", provider="codex" | "claude")` defaults to Codex for backward compatibility. The selected provider is persisted separately from the run and included in `work_status` and each review's latest run. Old runs default to Codex. Active attempts deduplicate across providers for the same review; cancel before switching. Retry preserves the provider, and receipts reject changed provider/input under the same request ID.
+
+The app owns tracked background work. A short-lived CLI process calling `start_work` does not keep its worker alive after exiting; use the running app for tracked execution. External agents can use `queue_review`, inspect evidence themselves, then `save_review` with a stable request ID. Those external sessions are not monitored by this app.
+
+Claude uses print mode with stream JSON input/output, schema-validated drafts, disabled built-in tools, empty strict MCP configuration, safe mode and no session persistence. Input includes only the selected bounded text and optional cached image (5 MB app limit). `GOLD_CLAUDE_BIN` may specify a native executable. Missing tools, unsupported flags, authentication, quota and timeout failures remain visible. Authentication stays in the provider CLI. This adapter is fixture-tested; live Claude verification is pending an installed, authenticated CLI. See [Claude protocol documentation](https://code.claude.com/docs/en/headless).

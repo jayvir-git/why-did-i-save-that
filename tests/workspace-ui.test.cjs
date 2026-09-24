@@ -95,6 +95,20 @@ test('a ready review appears after polling without replacing typed analysis', as
   assert.match(editor.status.textContent, /existing edits are kept/);
 });
 
+test('review provider selection and retry send the selected provider', async () => {
+  const h = harness(); await h.settle(); const sent=[];
+  h.context.fetch = async (_url, init) => { const request=JSON.parse(init.body); sent.push(request); return {ok:true,json:async()=>request.operation==='start_work'?{id:'run-claude',provider:'claude'}:{runs:[]}}; };
+  h.run("render([{id:'review-provider',state:'pending',objective:'Compare',version:1}],viewStates.media)");
+  const card = h.run('viewStates.media.content.children[0]');
+  const select = card.children.find(n=>n.id==='provider-review-provider');
+  select.value='claude';select.onchange();
+  await card.children.find(n=>n.textContent==='Start Claude Code review').onclick();
+  assert.equal(sent.find(r=>r.operation==='start_work').args.provider,'claude');
+  h.run("currentRuns=[{id:'run-claude',kind:'review',target:'review-provider',provider:'claude',state:'blocked',message:'Usage limit',created:1,last_event:1}];renderRuns()");
+  await h.get('#runs').children[0].children.find(n=>n.textContent==='Retry work').onclick();
+  assert.equal(sent.filter(r=>r.operation==='start_work').at(-1).args.provider,'claude');
+});
+
 test('an unfinished search completes in its own view without being repeated', async () => {
   const h = harness(); h.context.delaySearch = true; h.get('#query').value = 'website';
   const pending = h.run('load()');

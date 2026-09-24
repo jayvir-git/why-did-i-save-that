@@ -7,6 +7,7 @@ import uuid
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS action_receipts(id TEXT PRIMARY KEY, payload TEXT NOT NULL, result TEXT NOT NULL, created REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS work_runs(id TEXT PRIMARY KEY, kind TEXT NOT NULL, target TEXT NOT NULL, state TEXT NOT NULL, message TEXT NOT NULL, result TEXT, created REAL NOT NULL, updated REAL NOT NULL, heartbeat REAL NOT NULL, last_event REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS work_run_providers(run_id TEXT PRIMARY KEY REFERENCES work_runs(id),provider TEXT NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_run ON work_runs(kind,target) WHERE state IN ('queued','starting','running');
 CREATE TABLE IF NOT EXISTS source_actions(id TEXT PRIMARY KEY,observation_id TEXT NOT NULL REFERENCES observations(id),reason TEXT NOT NULL,next_action TEXT NOT NULL,due_date TEXT NOT NULL,state TEXT NOT NULL,outcome TEXT NOT NULL,version INTEGER NOT NULL,updated REAL NOT NULL);
 '''
@@ -152,9 +153,11 @@ class WorkflowMixin:
         rows=[dict(r) for r in self.db.execute("SELECT a.*,o.text AS source_text FROM source_actions a JOIN observations o ON o.id=a.observation_id ORDER BY state DESC,due_date='' ASC,due_date ASC,updated DESC")]
         return self._result(rows,{'method':'User-authored source actions and outcomes'})
 
-    def start_work(self, client_request_id, kind, target):
+    def start_work(self, client_request_id, kind, target, provider='codex'):
         from .runner import launch
         if kind not in ('review','index','extract'):raise ValueError('Unknown work type')
+        if provider not in ('codex','claude'):raise ValueError('Choose codex or claude as the review provider')
+        if kind!='review' and provider!='codex':raise ValueError('Provider selection applies only to reviews')
         if kind=='review':
             self._media_table(); row=self.db.execute('SELECT * FROM media_requests WHERE id=?',(target,)).fetchone()
             if not row or row['state']!='pending':raise ValueError('Choose a pending review')
@@ -171,8 +174,11 @@ class WorkflowMixin:
                 raise ValueError('Two tasks are already running. Wait for one to finish or cancel it in Activity.')
             ident='run_'+uuid.uuid4().hex; now=time.time()
             self.db.execute('INSERT INTO work_runs VALUES(?,?,?,?,?,?,?,?,?,?)',(ident,kind,target,'queued','Queued for local worker',None,now,now,now,now))
+            self.db.execute('INSERT INTO work_run_providers VALUES(?,?)',(ident,provider))
             return {'id':ident}
-        receipt=self._receipt(client_request_id,{'operation':'start_work','kind':kind,'target':target},write)
+        payload={'operation':'start_work','kind':kind,'target':target}
+        if provider!='codex':payload['provider']=provider
+        receipt=self._receipt(client_request_id,payload,write)
         launch(self.path,receipt['id'])
         return self.work_status(receipt['id'])['runs'][0]
 
@@ -181,7 +187,11 @@ class WorkflowMixin:
         with self.db:
             self.db.execute("UPDATE work_runs SET state='interrupted',message='Worker stopped responding. Retry to start a new attempt.',updated=? WHERE state IN ('queued','starting','running') AND heartbeat<?",(time.time(),time.time()-45))
         rows=self.db.execute('SELECT * FROM work_runs WHERE id=?' if run_id else 'SELECT * FROM work_runs ORDER BY created DESC LIMIT 50',(run_id,) if run_id else ()).fetchall()
-        return {'runs':[{**dict(r),'result':json.loads(r['result']) if r['result'] else None} for r in rows]}
+        return {'runs':[{**dict(r),'provider':self.work_provider(r['id']),'result':json.loads(r['result']) if r['result'] else None} for r in rows]}
+
+    def work_provider(self, run_id):
+        row=self.db.execute('SELECT provider FROM work_run_providers WHERE run_id=?',(run_id,)).fetchone()
+        return row[0] if row else 'codex'
 
     def cancel_work(self, run_id):
         with self.db:self.db.execute("UPDATE work_runs SET state='cancelled',message='Cancelled. Any completed extraction remains saved.',updated=? WHERE id=? AND state IN ('queued','starting','running')",(time.time(),run_id))

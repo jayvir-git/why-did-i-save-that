@@ -149,7 +149,7 @@ class ResearchMixin:
     def media_requests(self, state='all'):
         if state not in ('all','pending','completed','cancelled'): raise ValueError('Invalid state')
         self._media_table()
-        latest={r['target']:{**dict(r),'result':json.loads(r['result']) if r['result'] else None} for r in self.db.execute("SELECT r.* FROM work_runs r JOIN (SELECT target,max(created) AS created FROM work_runs WHERE kind='review' GROUP BY target) x ON r.target=x.target AND r.created=x.created WHERE r.kind='review'")}
+        latest={r['target']:{**dict(r),'provider':self.work_provider(r['id']),'result':json.loads(r['result']) if r['result'] else None} for r in self.db.execute("SELECT r.* FROM work_runs r JOIN (SELECT target,max(created) AS created FROM work_runs WHERE kind='review' GROUP BY target) x ON r.target=x.target AND r.created=x.created WHERE r.kind='review'")}
         return self._result([{**dict(r),'latest_run':latest.get(r['id'])} for r in self.db.execute("SELECT * FROM media_requests WHERE state=? OR ?='all' ORDER BY created DESC",(state,state))], {'method':'Persistent review requests with their latest tracked execution; completion requires accepted analysis or transcript import'})
 
     def complete_media(self, request_id, description, kind='visual', uncertainties=None, expected_version=1):

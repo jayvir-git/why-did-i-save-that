@@ -48,15 +48,15 @@ What is actually happening after Request review?
 flowchart TD
   choose["Choose exact source"]
   pending["Queue pending review"]
-  starting["Start Codex explicitly"]
-  running["Codex acknowledged"]
+  starting["Choose provider and start"]
+  running["Provider acknowledged"]
   blocked["Blocked / failed"]
   draft["Draft ready"]
   complete["Inspect and save review"]
   stopped["Cancelled / interrupted"]
   choose -->|"Queue selected source"| pending
-  pending -->|"Start Codex review"| starting
-  starting -->|"thread.started / turn.started"| running
+  pending -->|"Start selected provider"| starting
+  starting -->|"Codex thread/turn or Claude init"| running
   starting -->|"Setup failure"| blocked
   running -->|"Observed provider failure"| blocked
   running -->|"Valid structured result + completion"| draft
@@ -69,10 +69,10 @@ flowchart TD
 
 - **Choose exact source** — owner: Person; retained state: Selected observation ID; decisions: D38, D63
 - **Queue pending review** — owner: Server; retained state: Media request + receipt; decisions: D39
-- **Start Codex explicitly** — owner: Person + local worker; retained state: Run ID; decisions: D40, D66
-- **Codex acknowledged** — owner: Codex process; retained state: Heartbeat + last activity; decisions: D62
+- **Choose provider and start** — owner: Person + local worker; retained state: Run ID; decisions: D40, D66, D68
+- **Provider acknowledged** — owner: Provider process; retained state: Heartbeat + last activity; decisions: D62
 - **Blocked / failed** — owner: Worker; retained state: Persistent error and retry path; decisions: D45, D62
-- **Draft ready** — owner: Codex + worker; retained state: Unpublished draft; decisions: D40, D62
+- **Draft ready** — owner: Provider + worker; retained state: Unpublished draft; decisions: D40, D62
 - **Inspect and save review** — owner: Person + server; retained state: Atomic evidence + completion receipt; decisions: D41, D42, D64
 - **Cancelled / interrupted** — owner: Person / heartbeat monitor; retained state: Terminal attempt; late result ignored; decisions: D62
 
@@ -256,6 +256,34 @@ flowchart TD
 - **Notes view** — owner: Browser; retained state: Cached latest-artifact results; decisions: D21, D37
 - **Reviews view** — owner: Browser; retained state: Cached request results; decisions: D21, D22, D39
 - **Explicit refresh / new query** — owner: Browser; retained state: New result ID; source selection clears; decisions: D18, D19, D22
+
+### Agent setup and first use
+
+Can a fresh agent use this workspace without guessing?
+
+```mermaid
+flowchart TD
+  entry["Read agent entry point"]
+  baseline["Run setup"]
+  demo["Verify disposable workflow"]
+  config["Generate connection"]
+  human["Connect personal capabilities"]
+  use["Use workspace"]
+  entry -->|"One setup command"| baseline
+  baseline -->|"No provider calls"| demo
+  demo -->|"Only after verification"| config
+  config -->|"Explicit handoffs"| human
+  human -->|"Authorized data and provider"| use
+```
+
+**Gap:** The offline baseline is verified independently of optional downloads and account access. Live authenticated Claude remains unverified on this development machine.
+
+- **Read agent entry point** — owner: Agent; retained state: Shared setup guide; decisions: D70
+- **Run setup** — owner: Local Python; retained state: Prerequisite checks; decisions: D67
+- **Verify disposable workflow** — owner: CLI + MCP; retained state: Synthetic search and cited note; decisions: D69
+- **Generate connection** — owner: Setup; retained state: Absolute-path MCP config; decisions: D67
+- **Connect personal capabilities** — owner: Person; retained state: Sign-in, pairing, collection choice; decisions: D70
+- **Use workspace** — owner: Agent + person; retained state: Search, notes, optional tracked review; decisions: D68, D64
 
 ## Decision register
 
@@ -488,8 +516,8 @@ Submitting a query clears the previous list and reader, then retrieves a result 
 
 **Acceptance example:** Submit a new query while reading; selection clears and pending feedback appears.
 
-**Code:** [gold_workspace/web/app.js:330](../gold_workspace/web/app.js#L330)
-**Related test:** [Browse all clears](../tests/workspace-ui.test.cjs#L200)
+**Code:** [gold_workspace/web/app.js:336](../gold_workspace/web/app.js#L336)
+**Related test:** [Browse all clears](../tests/workspace-ui.test.cjs#L214)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -501,8 +529,8 @@ Generation tickets and result IDs prevent an older request from replacing a newe
 
 **Acceptance example:** An old query finishes last; the newer query remains on screen.
 
-**Code:** [gold_workspace/web/app.js:324](../gold_workspace/web/app.js#L324)
-**Related test:** [a late search response](../tests/workspace-ui.test.cjs#L133)
+**Code:** [gold_workspace/web/app.js:330](../gold_workspace/web/app.js#L330)
+**Related test:** [a late search response](../tests/workspace-ui.test.cjs#L147)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -514,8 +542,8 @@ The UI loads 20 rows at a time from a stable result ID.
 
 **Acceptance example:** Load more appends rows and continues ordinals.
 
-**Code:** [gold_workspace/web/app.js:323](../gold_workspace/web/app.js#L323)
-**Related test:** [result ordinals](../tests/workspace-ui.test.cjs#L156)
+**Code:** [gold_workspace/web/app.js:329](../gold_workspace/web/app.js#L329)
+**Related test:** [result ordinals](../tests/workspace-ui.test.cjs#L170)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -527,7 +555,7 @@ Tabs retain results, query drafts, scroll and the selected source. A five-second
 
 **Acceptance example:** Detect external evidence while reading; the reader stays selected.
 
-**Code:** [gold_workspace/web/app.js:624](../gold_workspace/web/app.js#L624)
+**Code:** [gold_workspace/web/app.js:633](../gold_workspace/web/app.js#L633)
 **Related test:** [Polling notices external evidence](../scripts/check_workflows.cjs#L49)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -540,7 +568,7 @@ Status polling compares source, note, review and action tokens and offers a refr
 
 **Acceptance example:** Complete a review externally; show an update notice without replacing the reader.
 
-**Code:** [gold_workspace/web/app.js:597](../gold_workspace/web/app.js#L597)
+**Code:** [gold_workspace/web/app.js:606](../gold_workspace/web/app.js#L606)
 **Related test:** [Polling notices external evidence](../scripts/check_workflows.cjs#L49)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -553,8 +581,8 @@ Sources, Notes, Reviews and Actions have hash destinations and browser Back supp
 
 **Acceptance example:** Open #actions directly and navigate Back.
 
-**Code:** [gold_workspace/web/app.js:412](../gold_workspace/web/app.js#L412)
-**Related test:** [destination links](../tests/workspace-ui.test.cjs#L210)
+**Code:** [gold_workspace/web/app.js:418](../gold_workspace/web/app.js#L418)
+**Related test:** [destination links](../tests/workspace-ui.test.cjs#L224)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -567,7 +595,7 @@ Changing density alters presentation without retrieving again; preference uses l
 **Acceptance example:** Toggle Scan/Read and verify zero API calls.
 
 **Code:** [gold_workspace/web/app.js:21](../gold_workspace/web/app.js#L21)
-**Related test:** [changing Scan/Read](../tests/workspace-ui.test.cjs#L145)
+**Related test:** [changing Scan/Read](../tests/workspace-ui.test.cjs#L159)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -619,7 +647,7 @@ The UI distinguishes post text, linked pages, OCR, thumbnail OCR, transcripts an
 **Acceptance example:** Thumbnail OCR receives an explicit thumbnail-only label.
 
 **Code:** [gold_workspace/web/app.js:107](../gold_workspace/web/app.js#L107)
-**Related test:** [thumbnail OCR](../tests/workspace-ui.test.cjs#L167)
+**Related test:** [thumbnail OCR](../tests/workspace-ui.test.cjs#L181)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -670,7 +698,7 @@ save_note commits investigation, artifact and stable request receipt in one tran
 
 **Acceptance example:** Drop the response after commit; one note exists and its receipt resolves.
 
-**Code:** [gold_workspace/workflows.py:38](../gold_workspace/workflows.py#L38)
+**Code:** [gold_workspace/workflows.py:39](../gold_workspace/workflows.py#L39)
 **Related test:** [def test_atomic_note_replay](../tests/test_workflows.py#L28)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -709,7 +737,7 @@ Uncited notes are unverified; cited notes are proposed after exact-span validati
 
 **Acceptance example:** Inspect the stored status of a cited and an uncited note.
 
-**Code:** [gold_workspace/workflows.py:38](../gold_workspace/workflows.py#L38)
+**Code:** [gold_workspace/workflows.py:39](../gold_workspace/workflows.py#L39)
 **Verification:** code inspection; no specific automated test mapped in this register.
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -722,8 +750,8 @@ During save, the button, editor and citation controls are locked; failure restor
 
 **Acceptance example:** A returned usage error leaves the draft intact and Save enabled.
 
-**Code:** [gold_workspace/web/app.js:425](../gold_workspace/web/app.js#L425)
-**Related test:** [failed note saves](../tests/workspace-ui.test.cjs#L261)
+**Code:** [gold_workspace/web/app.js:431](../gold_workspace/web/app.js#L431)
+**Related test:** [failed note saves](../tests/workspace-ui.test.cjs#L275)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -748,46 +776,46 @@ Review and coverage opens an explicit source/attachment selector with no default
 
 **Acceptance example:** Choose attachment B among multiple references; the submitted observation is B.
 
-**Code:** [gold_workspace/web/app.js:489](../gold_workspace/web/app.js#L489)
+**Code:** [gold_workspace/web/app.js:495](../gold_workspace/web/app.js#L495)
 **Related test:** [await page.selectOption('#media-target','2')](../scripts/check_workflows.cjs#L26)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
 ### D39 · Queueing is durable, not execution
 
-queue_review records a pending request with a replayable receipt. Starting Codex is a separate explicit action.
+queue_review records a pending request with a replayable receipt. Starting the selected provider is a separate explicit action.
 
 **Consequence:** Queueing still does not silently spend agent usage.
 
 **Acceptance example:** Queue a source, then start one tracked run explicitly.
 
-**Code:** [gold_workspace/workflows.py:51](../gold_workspace/workflows.py#L51)
+**Code:** [gold_workspace/workflows.py:52](../gold_workspace/workflows.py#L52)
 **Related test:** [def test_review_completion](../tests/test_workflows.py#L51)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
 ### D40 · Tracked agent execution is observable
 
-Runs started here use the local Codex CLI and persist actual acknowledgment, failures, heartbeat and draft results.
+Runs started here use the selected Codex or Claude Code CLI and persist actual acknowledgment, failures, heartbeat and draft results.
 
 **Consequence:** Externally started agents remain unobserved. Missing sign-in and quota failures are blocked states, not silent pending work.
 
 **Acceptance example:** A provider quota failure persists as blocked across page reload.
 
-**Code:** [gold_workspace/runner.py:88](../gold_workspace/runner.py#L88)
+**Code:** [gold_workspace/runner.py:96](../gold_workspace/runner.py#L96)
 **Related test:** [def test_worker_persists_provider_failure](../tests/test_workflows.py#L93)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
 ### D41 · Accepted drafts become derived evidence
 
-save_review atomically commits derived evidence, completion, annotation and request receipt. Codex output is a draft until the user saves it.
+save_review atomically commits derived evidence, completion, annotation and request receipt. Agent output is a draft until the user saves it.
 
 **Consequence:** Words see new evidence; the meaning index needs a rebuild. Original text is retained.
 
 **Acceptance example:** Retry a committed completion with the same request ID; no second resource is created.
 
-**Code:** [gold_workspace/workflows.py:63](../gold_workspace/workflows.py#L63)
+**Code:** [gold_workspace/workflows.py:64](../gold_workspace/workflows.py#L64)
 **Related test:** [def test_review_completion](../tests/test_workflows.py#L51)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -800,7 +828,7 @@ Completion checks pending state and expected version. Identical request-ID repla
 
 **Acceptance example:** Replay the same completion, then submit a conflicting one.
 
-**Code:** [gold_workspace/workflows.py:63](../gold_workspace/workflows.py#L63)
+**Code:** [gold_workspace/workflows.py:64](../gold_workspace/workflows.py#L64)
 **Related test:** [def test_review_completion](../tests/test_workflows.py#L51)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -827,7 +855,7 @@ Each API call races a 30-second timer; timeout aborts browser waiting and restor
 **Acceptance example:** A fetch that never settles produces a visible timeout and releases controls.
 
 **Code:** [gold_workspace/web/app.js:56](../gold_workspace/web/app.js#L56)
-**Related test:** [a request that never responds](../tests/workspace-ui.test.cjs#L240)
+**Related test:** [a request that never responds](../tests/workspace-ui.test.cjs#L254)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -839,7 +867,7 @@ The UI explains request errors; tracked workers additionally persist quota, sign
 
 **Acceptance example:** Inject a quota failure; show blocked status and a retry action.
 
-**Code:** [gold_workspace/runner.py:23](../gold_workspace/runner.py#L23)
+**Code:** [gold_workspace/runner.py:25](../gold_workspace/runner.py#L25)
 **Related test:** [def test_quota_and_auth](../tests/test_workflows.py#L87)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -852,7 +880,7 @@ After an interrupted write, the UI checks its receipt; an unchanged retry reuses
 
 **Acceptance example:** Lose a committed save response; recover it without another note.
 
-**Code:** [gold_workspace/web/app.js:461](../gold_workspace/web/app.js#L461)
+**Code:** [gold_workspace/web/app.js:467](../gold_workspace/web/app.js#L467)
 **Related test:** [drop its HTTP acknowledgment](../scripts/check_workflows.cjs#L38)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -1047,7 +1075,7 @@ An action records a user-authored reason, next step, optional due date and compl
 
 **Acceptance example:** Mark done without an outcome and receive validation; add outcome and save.
 
-**Code:** [gold_workspace/workflows.py:129](../gold_workspace/workflows.py#L129)
+**Code:** [gold_workspace/workflows.py:130](../gold_workspace/workflows.py#L130)
 **Related test:** [def test_actions_require_outcomes](../tests/test_workflows.py#L108)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -1056,11 +1084,11 @@ Historical rationale not established by this audit; consequence is analysis of t
 
 Tracked work can be queued, starting, running, ready, succeeded, blocked, failed, interrupted or cancelled. Heartbeats older than 45 seconds are interrupted.
 
-**Consequence:** A ready Codex draft is not completed review evidence. Extraction or index work can succeed separately.
+**Consequence:** A ready agent draft is not completed review evidence. Extraction or index work can succeed separately.
 
 **Acceptance example:** Cancel a run; a late result must not change it to ready.
 
-**Code:** [gold_workspace/workflows.py:179](../gold_workspace/workflows.py#L179)
+**Code:** [gold_workspace/workflows.py:185](../gold_workspace/workflows.py#L185)
 **Related test:** [def test_cancelled_run](../tests/test_workflows.py#L103)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -1073,7 +1101,7 @@ Coverage enumerates all referenced attachments and offers explicit capture; Acti
 
 **Acceptance example:** Capture a referenced URL and refresh coverage; refuse a URL unrelated to the source.
 
-**Code:** [gold_workspace/workflows.py:85](../gold_workspace/workflows.py#L85)
+**Code:** [gold_workspace/workflows.py:86](../gold_workspace/workflows.py#L86)
 **Related test:** [def test_targets_include](../tests/test_workflows.py#L60)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -1086,7 +1114,7 @@ Each new UI write retains a stable request ID and input until its outcome is kno
 
 **Acceptance example:** Submit the same note concurrently through two connections; one artifact commits.
 
-**Code:** [gold_workspace/workflows.py:20](../gold_workspace/workflows.py#L20)
+**Code:** [gold_workspace/workflows.py:21](../gold_workspace/workflows.py#L21)
 **Related test:** [def test_concurrent_save](../tests/test_workflows.py#L35)
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
@@ -1104,16 +1132,68 @@ A real disposable HTTP workspace is tested in Edge for attachment selection, los
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
-### D66 · Codex receives only the selected input
+### D66 · Providers receive selected input
 
-A Codex review runs ephemerally in a temporary directory with a read-only sandbox and no user configuration. Only selected text and a supported cached image are supplied.
+Codex uses an ephemeral read-only sandbox without user configuration. Claude uses a temporary directory, safe mode, no built-in tools, empty strict MCP and no session persistence. Selected text and a supported cached image are supplied.
 
 **Consequence:** The selected source is sent to the signed-in provider and consumes account usage. The UI explains this at the Start action.
 
 **Acceptance example:** Inspect the spawned argument vector and prompt; no whole-library prompt or workspace-write permission.
 
-**Code:** [gold_workspace/runner.py:96](../gold_workspace/runner.py#L96)
+**Code:** [gold_workspace/runner.py:115](../gold_workspace/runner.py#L115)
 **Related test:** [self.assertIn('read-only'](../tests/test_workflows.py#L86)
+
+Historical rationale not established by this audit; consequence is analysis of the current behavior.
+
+### D67 · Baseline setup is repeatable
+
+Default setup checks Python and SQLite, runs a disposable workflow and generates absolute-path MCP configuration without downloads or provider calls.
+
+**Consequence:** Optional packages/assets require explicit --with flags. Sign-in and collection remain human steps.
+
+**Acceptance example:** Run setup twice in a clean copy from another directory.
+
+**Code:** [scripts/setup.py:29](../scripts/setup.py#L29)
+**Related test:** [def test_mcp_config](../tests/test_setup.py#L13)
+
+Historical rationale not established by this audit; consequence is analysis of the current behavior.
+
+### D68 · Provider choice persists with the run
+
+Review provider is codex or claude. Old runs default to Codex; one active attempt per review deduplicates across providers.
+
+**Consequence:** Retry retains the provider. Switching an active review requires cancellation.
+
+**Acceptance example:** Start Claude, request Codex on the same review and observe the existing Claude run.
+
+**Code:** [gold_workspace/workflows.py:156](../gold_workspace/workflows.py#L156)
+**Related test:** [def test_provider_persists](../tests/test_providers.py#L26)
+
+Historical rationale not established by this audit; consequence is analysis of the current behavior.
+
+### D69 · Fresh acceptance uses no personal archive
+
+A clean temporary checkout omits runtime, models and private data, runs setup twice and launches the generated MCP command from elsewhere.
+
+**Consequence:** Offline baseline tests do not prove optional installs or live provider authentication.
+
+**Acceptance example:** Run check_fresh_install.py; no models are downloaded.
+
+**Code:** [scripts/check_fresh_install.py:12](../scripts/check_fresh_install.py#L12)
+**Related test:** [def check](../scripts/check_fresh_install.py#L12)
+
+Historical rationale not established by this audit; consequence is analysis of the current behavior.
+
+### D70 · Agent instructions have explicit entry points
+
+AGENTS.md and CLAUDE.md link to one setup guide with commands, capabilities, human handoffs and verification limits.
+
+**Consequence:** A remote-only harness cannot access a local archive without a supported connection.
+
+**Acceptance example:** Follow the baseline prompt using shell or local stdio MCP.
+
+**Code:** [docs/agent-start.md:1](../docs/agent-start.md#L1)
+**Verification:** code inspection; no specific automated test mapped in this register.
 
 Historical rationale not established by this audit; consequence is analysis of the current behavior.
 
@@ -1123,9 +1203,9 @@ Historical rationale not established by this audit; consequence is analysis of t
 
 A pending review says nothing about whether an agent ran.
 
-Local Codex runner with persistent acknowledgment, heartbeat, quota/configuration errors, cancellation and drafts.
+Local Codex/Claude runners with persistent acknowledgment, heartbeat, quota/configuration errors, cancellation and drafts.
 
-**Remaining limits:** Installed and signed-in Codex is required. Work launched elsewhere remains unobserved.
+**Remaining limits:** Selected CLI must be installed and signed in. Live Claude verification remains pending. External sessions remain unobserved.
 
 **Acceptance:** An injected quota error reaches the request it belongs to; UI shows blocked and a retry path without losing evidence.
 
@@ -1220,7 +1300,7 @@ Real browser acceptance for keyboard focus, workflow recovery and 320px layouts.
 ### S01 · The agent has no usage left
 
 1. Queue the selected source
-2. Start Codex review explicitly
+2. Choose provider and start explicitly
 3. Provider returns a usage error
 4. Worker persists blocked status and retry guidance
 

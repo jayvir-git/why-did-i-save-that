@@ -252,10 +252,16 @@ function renderMedia(row, card) {
   }, 'text-button');
   inspect.setAttribute('aria-expanded', 'false');
   if (row.state !== 'pending') return;
-  card.append(el('p', 'Waiting for a person or agent. Start a tracked Codex review below, or add your own analysis. Runs started here show progress and usage failures in Activity. Work started elsewhere is not tracked.', 'form-status'));
+  card.append(el('p', 'Waiting for a person or agent. Start a tracked agent review below, or add your own analysis. Runs started here show progress and usage failures in Activity. Work started elsewhere is not tracked.', 'form-status'));
   const runState = el('p', '', 'review-warning'); runState.setAttribute('role', 'status'); card.append(runState);
-  card.append(el('p', 'Starting Codex sends this selected source and question to your signed-in Codex provider and uses your account allowance. A draft requires your review before it becomes evidence.', 'meta'));
-  action(card, 'Start Codex review', () => beginWork('review', row.id), 'secondary');
+  const providerLabel = el('label', 'Review provider'), provider = el('select');
+  provider.id = 'provider-' + row.id; providerLabel.htmlFor = provider.id;
+  for (const [value, text] of [['codex', 'Codex'], ['claude', 'Claude Code']]) { const option = el('option', text); option.value = value; provider.append(option); }
+  provider.value = row.latest_run?.provider || 'codex';
+  card.append(providerLabel, provider);
+  card.append(el('p', 'Starting a review sends this selected source and question to the chosen provider using its CLI credentials and account allowance. A draft requires your review before it becomes evidence.', 'meta'));
+  const start = action(card, 'Start ' + providerName(provider.value) + ' review', () => beginWork('review', row.id, provider.value), 'secondary');
+  provider.onchange = () => { start.textContent = 'Start ' + providerName(provider.value) + ' review'; };
   const form = el('form', null, 'analysis-form');
   const label = el('label', 'Your analysis or transcript');
   const area = el('textarea'); area.rows = 4; area.required = true; area.id = 'analysis-' + row.id; label.htmlFor = area.id; area.placeholder = 'Describe what you inspected. Include timecodes for a transcript.';
@@ -531,15 +537,16 @@ $('#capture-target').onclick = async () => {
 };
 
 const reviewRunViews = new Map();
+function providerName(provider) { return provider === 'claude' ? 'Claude Code' : 'Codex'; }
 function draftText(run) {
   return run.result.description + ((run.result.uncertainties || []).length ? '\n\nLimitations: ' + run.result.uncertainties.join('; ') : '');
 }
 function syncReviewRunViews() {
   for (const [request, value] of reviewRunViews) {
     const run = currentRuns.find(r=>r.kind==='review' && r.target===request) || value.fallback;
-    value.node.textContent = run ? 'Codex: ' + run.state + ' · ' + run.message : 'No Codex run has been started for this request.';
+    value.node.textContent = run ? providerName(run.provider) + ': ' + run.state + ' · ' + run.message : 'No agent run has been started for this request.';
     if (run?.state === 'ready' && value.draftRun !== run.id) {
-      if (!value.draft) value.draft = disclosure(value.card, 'Codex draft — inspect before saving');
+      if (!value.draft) value.draft = disclosure(value.card, 'Agent draft — inspect before saving');
       const summary = value.draft.children[0];
       value.draft.replaceChildren(summary, el('p', run.result.description), el('p', (run.result.uncertainties || []).join(' · '), 'meta'));
       action(value.draft, 'Use this draft in the editor', () => {
@@ -568,25 +575,27 @@ async function openReviewEditor(run) {
   syncReviewRunViews();
   if (editor.draft) editor.draft.open = true;
   if (!editor.area.value.trim()) { editor.area.value = draftText(run); editor.status.textContent = 'Draft loaded. Check the analysis and limitations, then Save review.'; }
-  else editor.status.textContent = 'Your existing edits are kept. The Codex draft is shown alongside the editor for comparison.';
+  else editor.status.textContent = 'Your existing edits are kept. The agent draft is shown alongside the editor for comparison.';
   editor.area.focus(); editor.area.scrollIntoView?.({block:'center'});
 }
 let currentRuns = [], observedTokens = null, pendingUpdates = new Set(), pollBusy = false, runsSignature = '';
-async function beginWork(kind, target) {
-  const run = await durableWrite('work-'+kind+'-'+target, 'start_work', { kind, target });
+async function beginWork(kind, target, provider = 'codex') {
+  const run = await durableWrite('work-'+kind+'-'+target+'-'+provider, 'start_work', { kind, target, provider });
   $('#activity').open = true;
   await refreshStatus();
-  message('Work started. Activity shows progress, failures and recovery.');
+  const latest = currentRuns.find(r => r.id === run.id) || run;
+  if (['blocked','failed','interrupted'].includes(latest.state)) message(latest.message, 'error');
+  else message('Work started. Activity shows progress, failures and recovery.');
   return run;
 }
 function renderRuns() {
   const host = $('#runs'); host.replaceChildren();
   for (const run of currentRuns.slice(0, 12)) {
     const card = el('article', null, 'run-status');
-    card.append(el('h3', ({review:'Codex review',index:'Meaning index',extract:'Attachment capture'})[run.kind] + ' · ' + run.state.replaceAll('_',' ')), el('p', run.message));
+    card.append(el('h3', ({review:providerName(run.provider)+' review',index:'Meaning index',extract:'Attachment capture'})[run.kind] + ' · ' + run.state.replaceAll('_',' ')), el('p', run.message));
     card.append(el('p', 'Started ' + new Date(run.created*1000).toLocaleString() + ' · Last activity ' + new Date(run.last_event*1000).toLocaleTimeString(), 'meta'));
     if (['queued','starting','running'].includes(run.state)) action(card, 'Cancel work', async () => { await api('cancel_work', {run_id:run.id}); await refreshStatus(); }, 'text-button');
-    if (['blocked','failed','interrupted','cancelled'].includes(run.state)) action(card, 'Retry work', () => beginWork(run.kind,run.target), 'secondary');
+    if (['blocked','failed','interrupted','cancelled'].includes(run.state)) action(card, 'Retry work', () => beginWork(run.kind,run.target,run.provider || 'codex'), 'secondary');
     if (run.state === 'ready') {
       card.append(el('p', run.result.description), el('p', (run.result.uncertainties || []).join(' · '), 'meta'));
       action(card, 'Open review editor', () => openReviewEditor(run), 'secondary');

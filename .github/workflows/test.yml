@@ -15,7 +15,8 @@ jobs:
         with:
           node-version: '22'
       - run: python -m unittest discover -s tests -p "test_*.py"
-      - run: node --test tests/core.test.cjs tests/discovery.test.cjs tests/network.test.cjs tests/startup.test.cjs tests/workspace-sync.test.cjs
+      - run: python scripts/check_fresh_install.py
+      - run: node --test tests/core.test.cjs tests/discovery.test.cjs tests/network.test.cjs tests/startup.test.cjs tests/workspace-sync.test.cjs tests/workspace-ui.test.cjs
       - run: node scripts/check.cjs
       - run: node scripts/build.cjs --check
       - run: node --check gold_workspace/web/app.js

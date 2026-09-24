@@ -6,7 +6,17 @@ A local research workspace for your X likes and bookmarks. Capture posts, search
 
 *Built to conquer my bookmarks. The Tri-State Area can wait.*
 
-[Quick start](#quick-start) · [Features](#features) · [Usage](#usage) · [Optional capabilities](#optional-capabilities) · [Privacy and limitations](#privacy-and-limitations) · [Backup and restore](#backup-and-restore) · [Development](#development) · [Visual specification](#visual-specification)
+[Agent setup](#set-up-with-your-agent) · [Quick start](#quick-start) · [Features](#features) · [Usage](#usage) · [Optional capabilities](#optional-capabilities) · [Privacy and limitations](#privacy-and-limitations) · [Backup and restore](#backup-and-restore) · [Development](#development) · [Visual specification](#visual-specification)
+
+## Set up with your agent
+
+Give your agent the [setup prompt and guide](docs/agent-start.md), or run:
+
+```sh
+python scripts/setup.py
+```
+
+This verifies a disposable import/search/cited-note workflow and generates local MCP configuration. It requires Python 3.12+, uses no AI account and downloads nothing by default. Claude Code, other local MCP clients and agents with shell access can use the workspace. Provider login and connecting your collection remain explicit steps. See the guide for optional downloads and the current Claude verification limits.
 
 ## Quick start
 
@@ -53,7 +63,7 @@ On Windows, use forward slashes in the JSON path, such as `C:/Users/you/Download
 - **Keep evidence traceable:** Preserve original captures separately from OCR, interpretations and cited findings. Research tools retain earlier versions and flag changed captured sources.
 - **Build useful notes:** Save notes with exact source spans. Interrupted saves can be reconciled without creating duplicates.
 - **Follow through:** Record why a source matters, a next action, an optional due date and a completion outcome.
-- **Review selected evidence:** Choose the source or attachment explicitly. Tracked Codex reviews show progress, usage failures and drafts for you to inspect before saving.
+- **Review selected evidence:** Choose the source or attachment explicitly. Tracked Codex or Claude Code reviews show progress, usage failures and drafts for you to inspect before saving.
 
 No mandatory categorization or one-by-one review of your entire collection is required.
 
@@ -62,7 +72,7 @@ No mandatory categorization or one-by-one review of your entire collection is re
 - **Sources:** Choose **Scan** for compact excerpts or **Read** for fuller cards. **Read post** opens a source beside the list on desktop or in a dedicated mobile view. **Add to note** carries exact source spans into a note. **Browse all** returns to the collection. Attachment selection shows what has been captured and offers extraction when available.
 - **Notes:** Find saved notes and cited findings, or select **New note**. An unfinished note draft survives reloads in the current tab; **Save note** writes it to the workspace. Proposed findings are not automatically verified facts.
 - **Actions:** Use **Plan an action** on a source to record a reason and next step. Complete it by recording an outcome.
-- **Review queue:** Inspect a requested source and enter your own analysis or transcript, or explicitly start a [Codex review](#codex-reviews). **Open review editor** brings the ready draft and its limitations into view, fills an empty editor and preserves existing edits. Inspect the result, then choose **Save review** to make it searchable evidence.
+- **Review queue:** Inspect a requested source and enter your own analysis or transcript, or explicitly start an [agent review](#agent-reviews). **Open review editor** brings the ready draft and its limitations into view, fills an empty editor and preserves existing edits. Inspect the result, then choose **Save review** to make it searchable evidence.
 - **Activity & evidence freshness:** Check tracked work, cancel or retry tasks, and rebuild the meaning index. External changes produce an update notice; accepting a refresh preserves your selected source and reading position.
 - **Extension library:** Inspect captures, keep or dismiss posts, add notes and labels, and export or restore the browser's collection.
 
@@ -93,9 +103,11 @@ python scripts/enrich_library.py --run
 
 You can also request capture for a specific referenced attachment in the app. Rebuild the meaning index afterward to include new evidence. Extraction downloads public pages and images; it does not send your collection to an AI provider. Failures and incomplete coverage remain visible. Run `python scripts/doctor.py` to check installation; see [ENRICHMENT.md](ENRICHMENT.md) for details.
 
-### Codex reviews
+### Agent reviews
 
-Requires an installed, signed-in Codex CLI. From a pending review, choose **Start Codex review**. The selected captured text or supported cached image and your question are sent to your signed-in provider and use your account allowance. Progress, configuration errors and usage-limit failures appear in the app.
+Requires an installed, signed-in Codex or Claude Code CLI. From a pending review, choose **Review provider**, then **Start Codex review** or **Start Claude Code review**. The selected captured text or supported cached image and your question are sent to your signed-in provider and use your account allowance. Progress, configuration errors and usage-limit failures appear in the app.
+
+The Claude adapter has synthetic protocol coverage; a live authenticated Claude session has not yet been verified on the development machine. See [agent setup](docs/agent-start.md) for supported flags and troubleshooting.
 
 A successful response remains a draft until you inspect and save it. Full audio/video transcription is not included; a thumbnail does not establish what happens in a video.
 
@@ -106,7 +118,7 @@ Python, CLI and MCP interfaces let agents retrieve full result sets, branch inve
 ## Privacy and limitations
 
 - **Local storage:** The app stores its workspace locally and does not serve the private data directory. This project does not encrypt local data. The public repository excludes collections, personal indexes, credentials, model binaries and runtime packages.
-- **Provider access:** Ordinary browsing, word search, extraction and local indexing do not send the collection to an AI provider. Explicit Codex reviews and external agent workflows can send the evidence they use.
+- **Provider access:** Ordinary browsing, word search, extraction and local indexing do not send the collection to an AI provider. Explicit agent reviews and external agent workflows can send the evidence they use.
 - **Capture coverage:** Collection includes only what X sends or renders. Deleted or inaccessible posts and historical completeness cannot be recovered or certified.
 - **Evidence coverage:** Retrieval covers captured and extracted text, not uncaptured pages, speech or pixels. OCR is not visual understanding. Source content is untrusted evidence, never instructions.
 - **Search quality:** MiniLM is English-oriented; similarity does not guarantee relevance. Hybrid ranking combines BM25 and reciprocal rank fusion. A learned reranker is not included.
