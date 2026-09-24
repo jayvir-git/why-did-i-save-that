@@ -1,0 +1,263 @@
+{
+  "scope": "Synthetic labelled corpus; HTTP search plus first 20-row page. Cold = fresh server process (OS disk cache not flushed). Warm = existing server process. UI paint is excluded.",
+  "mode": "keyword",
+  "posts": 1200,
+  "cold": {
+    "samples": 3,
+    "p50_ms": 215.14,
+    "p95_ms": 243.68,
+    "expected_source_hit_at_5": 1.0
+  },
+  "warm": {
+    "samples": 36,
+    "p50_ms": 46.77,
+    "p95_ms": 68.85,
+    "expected_source_hit_at_5": 1.0
+  },
+  "budgets": {
+    "cold_p95_ms": 2500,
+    "warm_p95_ms": 500,
+    "expected_source_hit_at_5": 1.0
+  },
+  "measurements": {
+    "cold": [
+      {
+        "query": "database indexing",
+        "ms": 243.68,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 186.94,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 215.14,
+        "hit_at_5": true,
+        "fallback": null
+      }
+    ],
+    "warm": [
+      {
+        "query": "database indexing",
+        "ms": 41.13,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 56.46,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 42.92,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "sourdough fermentation",
+        "ms": 35.22,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "transcript timecodes",
+        "ms": 31.91,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "portfolio typography",
+        "ms": 40.42,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "database indexing",
+        "ms": 42.43,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 34.63,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 38.13,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "sourdough fermentation",
+        "ms": 46.45,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "transcript timecodes",
+        "ms": 45.65,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "portfolio typography",
+        "ms": 49.91,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "database indexing",
+        "ms": 56.55,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 59.29,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 40.52,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "sourdough fermentation",
+        "ms": 39.93,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "transcript timecodes",
+        "ms": 42.99,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "portfolio typography",
+        "ms": 58.04,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "database indexing",
+        "ms": 34.2,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 49.52,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 61.14,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "sourdough fermentation",
+        "ms": 64.25,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "transcript timecodes",
+        "ms": 84.55,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "portfolio typography",
+        "ms": 33.0,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "database indexing",
+        "ms": 63.82,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 57.63,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 68.85,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "sourdough fermentation",
+        "ms": 49.45,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "transcript timecodes",
+        "ms": 32.8,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "portfolio typography",
+        "ms": 48.81,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "database indexing",
+        "ms": 48.67,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "study retrieval practice",
+        "ms": 47.32,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "accessible keyboard navigation",
+        "ms": 47.33,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "sourdough fermentation",
+        "ms": 47.09,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "transcript timecodes",
+        "ms": 45.19,
+        "hit_at_5": true,
+        "fallback": null
+      },
+      {
+        "query": "portfolio typography",
+        "ms": 32.71,
+        "hit_at_5": true,
+        "fallback": null
+      }
+    ]
+  },
+  "passed": true
+}

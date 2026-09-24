@@ -13,3 +13,24 @@ Tests are synthetic regression checks, not a benchmark proving retrieval quality
 Run `python scripts/preview_ui.py`, then visit `http://127.0.0.1:8770` for the real interface backed by 24 synthetic posts. Stop with Ctrl+C to clean up the temporary workspace. Use this preview for note saves and review completion without changing a personal archive.
 
 Check Sources, Notes, and Review queue at desktop and narrow mobile widths. Open and close the reader; verify list position and selected source survive navigation. Exercise Load more, keyword search, Browse all, empty results, and missing semantic-model recovery. Check note draft recovery after reload, citation removal, and saving. Confirm visible keyboard focus, dialog Escape behavior, browser Back, and no horizontal overflow at 320px. Design and interaction rules are in [docs/ui-design.md](docs/ui-design.md).
+
+
+Search regression tests cover reuse across HTTP-style connections, invalidation after imports and review completion, semantic cache reuse and pinned-index behavior. UI tests cover stalled requests, usage errors, network failures, malformed responses, button recovery, draft retention, and explicit waiting states for reviews. Run the attachment tests with NumPy installed to exercise matrix scoring; the same tests also cover the dependency-free fallback in a Python environment without NumPy.
+
+
+## Visual specification
+
+`python scripts/build_visual_spec.py --check` checks source/test anchors, graph references, catalog enumeration and generated-file freshness. Regenerate with `python scripts/build_visual_spec.py` after reviewing affected decisions. The source register is in that script; the display template is `docs/visual-spec.template.html`.
+
+With Playwright available, `node scripts/check_visual_spec.cjs` checks every map and node, decision search, walkthrough stepping, API filtering, 360px overflow and browser errors in the generated offline artifact. It launches installed Edge headlessly. This checks the specification viewer, not the product's accessibility or end-to-end behavior.
+
+
+## Workflow and search acceptance
+
+`python -m unittest discover -s tests -p "test_workflows.py"` covers concurrent/idempotent writes, invalid-citation rollback, atomic review replay, explicit attachment coverage, target validation, worker deduplication, cancellation, stale heartbeat, Codex JSONL drafts, persisted quota errors and action version conflicts. Provider-event fixtures do not spend usage.
+
+`node scripts/check_workflows.cjs` uses Playwright and installed Edge against a disposable 24-post workspace. It verifies the real target picker, visible quota recovery, a committed save whose HTTP response is dropped, next-action/outcome editing, external updates without losing the reader, focus return and 320px layouts. No personal archive or live provider is used.
+
+`python scripts/benchmark_search.py --output docs/search-benchmark.json` measures HTTP search plus the first page against 1,200 synthetic posts and six labelled queries. Fresh server processes supply cold samples; warm samples reuse a server. Initial fixture regression budgets are cold p95 <= 2,500 ms, warm p95 <= 500 ms and expected-source hit@5 = 1.0. Override budgets explicitly for other machines. OS disk cache is not flushed and browser painting is excluded. `--mode hybrid` or `semantic` requires a working local model, builds a fixture index and rejects fallback as a benchmark success. Personal-library relevance still needs user-labelled examples; synthetic scores do not establish it.
+
+One live installed-CLI smoke test using only a synthetic sentence reached a review draft on 2026-09-24 with normal user-profile access. Running the CLI inside a filesystem-restricted test sandbox produced configuration/permission failures, which were surfaced rather than hidden. Automated browser and event-fixture checks remain repeatable without spending account usage.

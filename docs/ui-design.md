@@ -4,7 +4,7 @@ The interface is a local source-and-notes workspace. Chalk-white reading surface
 
 ## Organization
 
-- **Sources** and **Notes** are the two primary navigation links in a shallow header. **Review queue** is a secondary destination for unfinished media work. There is no permanent sidebar.
+- **Sources**, **Notes** and **Actions** are the primary navigation links in a shallow header. **Review queue** is a secondary destination for unfinished media work. There is no permanent sidebar.
 - Sources opens with current posts ordered by posted date, newest first, with undated posts last. Browsing does not run the semantic model. Search supports words, meaning, or both; Browse all returns to the collection.
 - Scan presents compact source excerpts in aligned rows. Read presents fuller cards. Read post selects a source in a separate desktop reading pane. On mobile, the reader occupies the working surface; Back to list restores the previous list position and focus.
 - Notes holds saved notes and cited findings. Source-specific note and review actions stay with the source. New note is available in the application header.
@@ -49,3 +49,10 @@ The footer contains an expandable “Inside the invention” guide and a LOCAL v
 The popup, capture library, and floating X collector share the workspace identity: neutral surfaces, aubergine primary actions, yellow-green active indicators, amber kept states, crisp borders, and the compact inator wordmark. The capture library uses a wrapping filter bar instead of a fixed sidebar. Capture entry links remain in its footer. Popup and library version plates are checked against the extension manifest.
 
 After changing the extension, rebuild with `node scripts/build.cjs`, reload the unpacked extension at `chrome://extensions`, and reload existing X tabs to update their injected collector. Static browser previews verify layout; collection and bridge behavior require the actual Chrome extension context.
+
+
+## Observable work and explicit decisions
+
+Activity reports tracked worker progress and failures separately from review-request state. Starting Codex explicitly discloses selected-source transmission and account usage. A successful agent answer is a draft; the user inspects it before saving evidence. Evidence coverage opens a required target picker with previews and a capture action for missing attachments. The meaning-index status has an explicit tracked rebuild action.
+
+Uncertain writes retain a stable submitted request and look up its receipt before any replay. New edits do not silently reuse a request ID. The update notice reflects polled committed changes without replacing a reader; accepting refresh restores the selected source and scroll. Actions record the person's reason, next step, optional date and completion outcome. These are authored intent, never inferred categories.

@@ -22,6 +22,24 @@ def fake_embed(texts):
 
 
 class AttachmentSearchTests(unittest.TestCase):
+    def test_index_is_reused_across_connections_with_identical_scores(self):
+        from gold_workspace.attachment_search import _load_index
+        with tempfile.TemporaryDirectory() as folder, patch('gold_workspace.attachment_search.embed',side_effect=fake_embed):
+            w=Workspace(folder); w.import_backup(data=backup('Retrieval evidence'))
+            w.index_attachments()
+            before=_load_index.cache_info()
+            first=w.attachment_semantic('find knowledge')['receipt']['result_id']
+            other=Workspace(folder)
+            try:
+                second=other.attachment_semantic('retrieval')['receipt']['result_id']
+                self.assertEqual(w.result(first)['rows'],other.result(second)['rows'])
+                self.assertAlmostEqual(w.result(first)['rows'][0]['score'],1.)
+                after=_load_index.cache_info()
+                self.assertEqual(after.misses-before.misses,1)
+                self.assertEqual(after.hits-before.hits,1)
+            finally:
+                other.close(); w.close()
+
     def test_quoted_post_passages_can_be_used_directly_as_claim_evidence(self):
         with tempfile.TemporaryDirectory() as folder, patch('gold_workspace.attachment_search.embed',side_effect=fake_embed):
             w=Workspace(folder); b=backup('Saved this')

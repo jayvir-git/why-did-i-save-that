@@ -7,6 +7,28 @@ import pathlib
 import re
 import sys
 import uuid
+import functools
+import threading
+
+_index_lock = threading.Lock()
+
+
+@functools.lru_cache(maxsize=2)
+def _load_index(path, modified, size):
+    # File identity in the cache key also handles a restored/replaced index.
+    index = json.loads(path.read_text(encoding="utf-8"))
+    keys = list(index["vectors"])
+    try:
+        import numpy as np
+    except ImportError:
+        matrix = None; valid = None
+    else:
+        matrix = np.asarray([index["vectors"][k] for k in keys], dtype=np.float64).reshape((-1,384))
+        norms = np.linalg.norm(matrix,axis=1,keepdims=True)
+        valid = norms[:,0] > 0
+        matrix = matrix / np.maximum(norms,1e-12)
+        del index["vectors"]  # Keep the compact matrix, not duplicate Python floats.
+    return index, keys, matrix, valid
 
 from .discovery import UI_LINE, asset_identity, repeated_lines, tokens
 from .enrichment import enriched_records
@@ -40,7 +62,8 @@ def passages(text, boilerplate):
     return out
 
 
-def build(w, snapshot=None):
+def build(w, snapshot=None, progress=None):
+    if progress: progress('Preparing source passages…')
     revision = w._snapshot(snapshot); enrichment_revision = w.revision()
     rows = list(enriched_records(w, revision)); boilerplate = repeated_lines(rows)
     sources = {}; parents = {}
@@ -68,10 +91,12 @@ def build(w, snapshot=None):
     required = {p['cache_key']:p['embedding_text'] for p in chunks}; missing = [k for k in required if k not in cache]
     print(f'Attachment search: {len(chunks)} passages; {len(required)-len(missing)} cached vectors, {len(missing)} to encode', file=sys.stderr, flush=True)
     for offset in range(0,len(missing),24):
+        if progress: progress(f'Encoding passages: {offset} of {len(missing)} new vectors')
         keys = missing[offset:offset+24]; cache.update(zip(keys,embed([required[k] for k in keys])))
         if offset % 240 == 0 or offset+24 >= len(missing):
             write_json(cache_path,cache)
             print(f'Encoded {min(offset+24,len(missing))}/{len(missing)}',file=sys.stderr,flush=True)
+    if progress: progress('Writing and validating the meaning index…')
     for key in required:
         if len(cache[key]) != 384 or not all(math.isfinite(n) for n in cache[key]): raise ValueError('Invalid cached vector')
     index_id = hashlib.sha256(json.dumps([MODEL,revision,enrichment_revision,[p['passage_id'] for p in chunks]],sort_keys=True).encode()).hexdigest()
@@ -80,6 +105,7 @@ def build(w, snapshot=None):
     folder = w.path/'attachment-indexes'; folder.mkdir(exist_ok=True)
     path = folder/(index_id+'.json')
     if not path.exists(): write_json(path,{'receipt':receipt,'parents':parents,'passages':chunks,'vectors':{k:cache[k] for k in required}})
+    write_json(folder/(index_id+'.receipt.json'),receipt)
     write_json(w.path/'attachment-search-latest.json',{'index_id':index_id})
     return receipt
 
@@ -92,14 +118,21 @@ def search(w, text, index_id=None, threshold=.3):
         if not pointer.exists(): raise ValueError('Run index_attachments first')
         index_id = json.loads(pointer.read_text(encoding='utf-8'))['index_id']
     if not re.fullmatch(r'[a-f0-9]{64}',index_id): raise ValueError('Invalid index ID')
-    index = json.loads((w.path/'attachment-indexes'/(index_id+'.json')).read_text(encoding='utf-8'))
     query = embed([text])[0]
+    path = w.path/'attachment-indexes'/(index_id+'.json')
+    stat = path.stat()
+    with _index_lock:
+        index, keys, matrix, valid = _load_index(path, stat.st_mtime_ns, stat.st_size)
     qnorm = math.sqrt(sum(x*x for x in query))
     if len(query)!=384 or not qnorm or not all(math.isfinite(x) for x in query): raise ValueError('Invalid query vector')
-    scores = {}
-    for key, vector in index['vectors'].items():
-        norm = math.sqrt(sum(x*x for x in vector))
-        scores[key] = sum(a*b for a,b in zip(query,vector))/(qnorm*norm) if norm else -1
+    if matrix is not None:
+        import numpy as np
+        scores = dict(zip(keys, np.where(valid, matrix @ (np.asarray(query)/qnorm), -1).tolist()))
+    else:
+        scores = {}
+        for key, vector in index['vectors'].items():
+            norm = math.sqrt(sum(x*x for x in vector))
+            scores[key] = sum(a*b for a,b in zip(query,vector))/(qnorm*norm) if norm else -1
     matched = {}
     for p in index['passages']:
         score = scores[p['cache_key']]

@@ -3,6 +3,19 @@ import inspect, json, sys
 from .engine import Workspace
 
 DESCRIPTIONS={
+ 'save_note':'Atomically save a note and its investigation with a stable request ID. Replaying identical input returns the committed result.',
+ 'action_outcome':'Look up the committed result of a client request after a lost response. not_found does not guarantee an in-flight request will not commit.',
+ 'queue_review':'Queue an explicitly selected source for review with a durable request receipt.',
+ 'save_review':'Atomically save derived review evidence, request completion and a replayable receipt.',
+ 'source_targets':'Enumerate a saved source and its actual attachments, previews and evidence coverage.',
+ 'workspace_status':'Read revision tokens, index freshness and observable worker status without changing UI selection.',
+ 'start_work':'Start a review through the local Codex CLI, rebuild meaning index, or extract a referenced attachment in a tracked background worker.',
+ 'work_status':'Read worker states, last activity, heartbeat and results. Stale workers become interrupted.',
+ 'cancel_work':'Cancel a tracked worker. Already-saved evidence remains.',
+ 'save_source_action':'Record why a source matters, a next action, optional due date and completion outcome with version checks and replayable receipt.',
+ 'source_action':'Read an existing action for a selected captured source, or version zero when none exists.',
+ 'source_actions':'List saved next actions and outcomes linked to immutable sources.',
+
  'search_library':'Empty text browses all current posts newest posted first without semantic inference. Otherwise search full captured attachment text with BM25 and optional local semantic rank fusion. Returns exact evidence spans; hybrid falls back visibly when semantic assets are unavailable.',
  'research_search':'Search latest research artifacts separately from original evidence, including source-version staleness indicators.',
  'connect_research':'Record a version-pinned supports, contradicts, related or supersedes relationship between research artifacts.',

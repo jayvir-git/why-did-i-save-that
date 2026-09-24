@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .engine import Workspace
 from .interface import invoke
 
-ALLOWED = {'inventory','search_library','research_search','result','get','investigate','artifact','claim','read_artifact','connect_research','request_media','media_requests','complete_media','enrichment_status','visual_queue'}
+ALLOWED = {'source_action','save_note','action_outcome','queue_review','save_review','source_targets','workspace_status','start_work','work_status','cancel_work','save_source_action','source_actions','inventory','search_library','research_search','result','get','investigate','artifact','claim','read_artifact','connect_research','request_media','media_requests','complete_media','enrichment_status','visual_queue'}
 
 
 def server(workspace, port=8768):

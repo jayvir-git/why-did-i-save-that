@@ -3,6 +3,7 @@ import hashlib, json, pathlib, sqlite3, time, uuid
 from .semantic import SemanticMixin
 from .jobs import JobsMixin
 from .research import ResearchMixin
+from .workflows import WorkflowMixin, SCHEMA as WORKFLOW_SCHEMA
 
 def dumps(value): return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
 def digest(value): return hashlib.sha256(value if isinstance(value, bytes) else value.encode()).hexdigest()
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS vectors(observation_id TEXT NOT NULL REFERENCES obser
 CREATE VIEW IF NOT EXISTS current_posts AS SELECT * FROM observations o WHERE kind='post' AND revision=(SELECT MAX(revision) FROM observations x WHERE x.object_id=o.object_id);
 '''
 
-class Workspace(ResearchMixin,SemanticMixin,JobsMixin):
+class Workspace(WorkflowMixin,ResearchMixin,SemanticMixin,JobsMixin):
     def __init__(self, path='workspace-data'):
         self.path=pathlib.Path(path).resolve();self.path.mkdir(parents=True,exist_ok=True)
         (self.path/'blobs').mkdir(exist_ok=True)
@@ -35,7 +36,7 @@ class Workspace(ResearchMixin,SemanticMixin,JobsMixin):
         self.db.row_factory=sqlite3.Row
         self.db.execute('PRAGMA foreign_keys=ON');self.db.execute('PRAGMA journal_mode=WAL')
         has_fts=self.db.execute("SELECT 1 FROM sqlite_master WHERE name='observation_fts'").fetchone()
-        self.db.executescript(SCHEMA)
+        self.db.executescript(SCHEMA + WORKFLOW_SCHEMA)
         if not has_fts:
             with self.db:self.db.execute('INSERT INTO observation_fts SELECT id,text FROM observations')
     def close(self): self.db.close()
@@ -208,12 +209,14 @@ class Workspace(ResearchMixin,SemanticMixin,JobsMixin):
     def claim(self,investigation_id,name,statement,evidence,assumptions=None,counterevidence=None,status='proposed',expected_version=0):
         if status not in ['proposed','supported','disputed','superseded']:raise ValueError('Invalid claim status')
         if not evidence:raise ValueError('At least one evidence span is required')
-        for e in evidence+(counterevidence or []):
+        self.validate_evidence(evidence+(counterevidence or []))
+        return self.artifact(investigation_id,name,'claim',{'statement':statement,'evidence':evidence,'counterevidence':counterevidence or [],'assumptions':assumptions or [],'status':status,'validation':'Exact source spans verified; semantic support remains an agent judgment'},expected_version)
+    def validate_evidence(self,evidence):
+        for e in evidence:
             r=self.get([e['observation_id']])[0];start,end=e['start'],e['end'];field=e.get('field','text')
             if field not in ['text','context','quotedPost.text']:raise ValueError('Evidence field must be text, context or quotedPost.text')
             value=r['text'] if field=='text' else r['raw'].get('context','') if field=='context' else (r['raw'].get('quotedPost') or {}).get('text','')
             if not isinstance(start,int) or not isinstance(end,int) or not 0<=start<end<=len(value) or value[start:end]!=e['quote']:raise ValueError('Evidence quote does not match its immutable source span')
-        return self.artifact(investigation_id,name,'claim',{'statement':statement,'evidence':evidence,'counterevidence':counterevidence or [],'assumptions':assumptions or [],'status':status,'validation':'Exact source spans verified; semantic support remains an agent judgment'},expected_version)
     def branch(self,investigation_id,objective):
         source=self.resume(investigation_id);child=self.investigate(objective,source['snapshot'])
         self.artifact(child['id'],'branch-parent','lineage',{'parent':investigation_id,'artifacts':source['artifacts']})

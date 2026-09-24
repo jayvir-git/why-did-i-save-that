@@ -3,6 +3,7 @@
 Run `python scripts/preview_ui.py`, then open http://127.0.0.1:8770.
 Ctrl+C stops the preview and removes its temporary workspace.
 """
+import argparse
 import pathlib
 import sys
 import tempfile
@@ -21,6 +22,8 @@ def seed(path):
     ]
     for index in range(24):
         author, text = examples[index % len(examples)]
+        if index == 0:
+            text += ' Targetpicker fixture with two attachments.'
         if index == 3:
             text += '\n\n' + 'Good website design makes the next step obvious. ' * 22
         post_id = str(123456 + index)
@@ -29,16 +32,25 @@ def seed(path):
                       'postedAt': '2026-09-01T12:00:00Z', 'status': 'inbox', 'note': '', 'reasons': []})
     workspace = Workspace(path)
     try:
+        posts[0]['links'] = ['https://example.com/attachment-a','https://example.com/attachment-b']
         workspace.import_backup(data={'format': 'gold-collector', 'version': 1, 'posts': posts})
+        parent = next(p for p in workspace.records() if p['id'] == '123456')['observation_id']
+        for suffix in ['a','b']:
+            url='https://example.com/attachment-'+suffix
+            value=workspace._resource({'raw':('Attachment '+suffix).encode(),'text':'Captured attachment '+suffix,'url':url,'source_url':url,'mime':'text/plain','coverage':'text','extractor':'preview-fixture'})
+            with workspace.db:
+                workspace.db.execute('INSERT INTO asset_refs VALUES(?,?,?)',(parent,url,'link'))
+                workspace.db.execute('INSERT INTO asset_cache VALUES(?,?)',(url,value['observation_id']))
     finally:
         workspace.close()
 
 
 if __name__ == '__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--port',type=int,default=8770);args=parser.parse_args()
     with tempfile.TemporaryDirectory(prefix='gold-ui-preview-') as path:
         seed(path)
-        app = server(path, port=8770)
-        print('Disposable UI preview: http://127.0.0.1:8770', flush=True)
+        app = server(path, port=args.port)
+        print(f'Disposable UI preview: http://127.0.0.1:{args.port}', flush=True)
         try:
             app.serve_forever()
         except KeyboardInterrupt:

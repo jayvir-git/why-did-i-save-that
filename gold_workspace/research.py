@@ -5,6 +5,44 @@ import math
 import re
 import time
 import uuid
+import threading
+
+# Shared across short-lived HTTP Workspace connections; never cache SQLite handles.
+_search_cache = collections.OrderedDict()
+_search_lock = threading.Lock()
+
+
+def lexical_index(w):
+    from .enrichment import enriched_records
+    # Results/notes do not affect retrieval. Include relationships as well as revisions:
+    # enrichment can attach an already-stored resource without creating a revision.
+    stamp = (w.revision(), tuple(tuple(r) for r in w.db.execute(
+        "SELECT source_observation,url,role FROM asset_refs ORDER BY source_observation,url,role")),
+        tuple(tuple(r) for r in w.db.execute("SELECT url,observation_id FROM asset_cache ORDER BY url")),
+        tuple(tuple(r) for r in w.db.execute("SELECT * FROM asset_annotations ORDER BY 1,2")))
+    identity = (str(w.path), (w.path / "workspace.sqlite").stat().st_ino)
+    with _search_lock:
+        cached = _search_cache.get(identity)
+        if cached and cached[0] == stamp:
+            _search_cache.move_to_end(identity)
+            return cached[1]
+        documents = []; postings = collections.defaultdict(set)
+        for p in enriched_records(w):
+            sources = [{"observation_id":p["observation_id"], "field":"text", "text":p["text"], "role":"post"}]
+            for field, body in [("context",p.get("context","")), ("quotedPost.text",(p.get("quotedPost") or {}).get("text",""))]:
+                if body: sources.append({"observation_id":p["observation_id"], "field":field, "text":body, "role":field})
+            sources.extend({**a,"field":"text"} for a in p["attachments"] if a.get("text") and a.get("observation_id"))
+            unique = {}
+            for source in sources: unique.setdefault(source["text"],source)
+            sources = list(unique.values())
+            counts = collections.Counter(terms("\n".join(s["text"] for s in sources)))
+            for term in counts: postings[term].add(len(documents))
+            documents.append((p,sources,counts,sum(counts.values())))
+        value = (documents, postings, sum(d[3] for d in documents)/max(len(documents),1) or 1)
+        _search_cache[identity] = (stamp,value)
+        _search_cache.move_to_end(identity)
+        while len(_search_cache)>2: _search_cache.popitem(last=False)
+        return value
 
 
 def terms(text):
@@ -13,10 +51,9 @@ def terms(text):
 
 class ResearchMixin:
     def search_library(self, text, mode='hybrid'):
-        from .enrichment import enriched_records
         if not text.strip():
             rows = []
-            for p in enriched_records(self):
+            for p, _sources, _counts, _length in lexical_index(self)[0]:
                 spans = []
                 if p.get('text'):
                     spans.append({'observation_id':p['observation_id'], 'field':'text', 'role':'post', 'start':0, 'end':min(len(p['text']),600), 'quote':p['text'][:600]})
@@ -28,24 +65,14 @@ class ResearchMixin:
             return self._result(rows, {'query':'', 'mode':'browse', 'method':'All current posts, newest posted date first; undated posts last', 'revision':self.revision()})
         if mode not in ('keyword', 'hybrid', 'semantic'):
             raise ValueError('Unknown search mode')
-        candidates = list(enriched_records(self)) if mode != 'semantic' else []
         query = set(terms(text))
-        documents = []
-        for p in candidates:
-            sources = [{'observation_id': p['observation_id'], 'field': 'text', 'text': p['text'], 'role': 'post'}]
-            for field, body in [('context', p.get('context', '')), ('quotedPost.text', (p.get('quotedPost') or {}).get('text', ''))]:
-                if body: sources.append({'observation_id': p['observation_id'], 'field': field, 'text': body, 'role': field})
-            sources.extend({**a, 'field': 'text'} for a in p['attachments'] if a.get('text') and a.get('observation_id'))
-            unique = {}
-            for source in sources: unique.setdefault(source['text'], source)
-            sources = list(unique.values())
-            counts = collections.Counter(terms('\n'.join(s['text'] for s in sources)))
-            documents.append((p, sources, counts, sum(counts.values())))
+        documents, postings, avg = lexical_index(self) if mode != 'semantic' else ([], {}, 1)
         n = len(documents)
-        avg = sum(d[3] for d in documents) / max(n, 1) or 1
-        df = {t: sum(t in d[2] for d in documents) for t in query}
+        df = {t: len(postings.get(t, ())) for t in query}
+        matching = set().union(*(postings.get(t, ()) for t in query))
         lexical = []
-        for p, sources, counts, length in documents:
+        for i in sorted(matching):
+            p, sources, counts, length = documents[i]
             score = sum(math.log(1+(n-df[t]+.5)/(df[t]+.5))*counts[t]*2.2/(counts[t]+1.2*(.25+.75*length/avg)) for t in query if counts[t])
             if not score: continue
             evidence = []
@@ -62,7 +89,7 @@ class ResearchMixin:
                 result = self.attachment_semantic(text)
                 semantic_receipt = result['receipt']
                 semantic = self.result(result['receipt']['result_id'], limit=10000)['rows']
-            except (RuntimeError, FileNotFoundError, ValueError) as e:
+            except (RuntimeError, OSError, ValueError) as e:
                 if mode == 'semantic': raise
                 warning = str(e)
         combined = {}
@@ -122,7 +149,8 @@ class ResearchMixin:
     def media_requests(self, state='all'):
         if state not in ('all','pending','completed','cancelled'): raise ValueError('Invalid state')
         self._media_table()
-        return self._result([dict(r) for r in self.db.execute("SELECT * FROM media_requests WHERE state=? OR ?='all' ORDER BY created DESC",(state,state))], {'method':'Persistent on-demand review requests; completion requires explicit analysis or transcript import'})
+        latest={r['target']:{**dict(r),'result':json.loads(r['result']) if r['result'] else None} for r in self.db.execute("SELECT r.* FROM work_runs r JOIN (SELECT target,max(created) AS created FROM work_runs WHERE kind='review' GROUP BY target) x ON r.target=x.target AND r.created=x.created WHERE r.kind='review'")}
+        return self._result([{**dict(r),'latest_run':latest.get(r['id'])} for r in self.db.execute("SELECT * FROM media_requests WHERE state=? OR ?='all' ORDER BY created DESC",(state,state))], {'method':'Persistent review requests with their latest tracked execution; completion requires accepted analysis or transcript import'})
 
     def complete_media(self, request_id, description, kind='visual', uncertainties=None, expected_version=1):
         if kind not in ('visual','transcript'): raise ValueError('kind must be visual or transcript')

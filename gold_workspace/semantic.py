@@ -1,8 +1,9 @@
 """Local MiniLM inference; model assets are bundled, and no remote loading exists."""
-import json, pathlib, sys
+import json, pathlib, sys, threading
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 MODEL='Xenova/all-MiniLM-L6-v2@751bff37182d3f1213fa05d7196b954e230abad9:q8:mean'
 _runtime=None
+_runtime_lock=threading.Lock()
 def text(post):
     return '\n'.join(x for x in [post.get('text'),post.get('context'),(post.get('quotedPost') or {}).get('text'),*[m.get('alt') for m in post.get('media',[])]] if x).strip()
 def fingerprint(post):
@@ -14,6 +15,9 @@ def fingerprint(post):
 def chunks(value):
     words=value.split();return [' '.join(words[i:i+120]) for i in range(0,len(words),90)]
 def embed(texts):
+    with _runtime_lock:return _embed(texts)
+
+def _embed(texts):
     global _runtime
     if _runtime is None:
         sys.path.insert(0,str(ROOT/'.runtime'))

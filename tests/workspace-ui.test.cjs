@@ -14,7 +14,8 @@ function harness(initialHash = '') {
     getAttribute(key) { return this.attrs[key]; }
     removeAttribute(key) { delete this.attrs[key]; }
     addEventListener() {}
-    focus() {}
+    focus() { this.focused = true; }
+    scrollIntoView() { this.scrolled = true; }
     select() {}
   }
   const nodes = new Map();
@@ -25,7 +26,7 @@ function harness(initialHash = '') {
   const context = vm.createContext({
     document: { querySelector: get, querySelectorAll: selector => selector === '[data-view]' ? nav : [], createElement: tag => new Element(tag), addEventListener() {} },
     sessionStorage: { getItem() { return null; }, setItem() {} },
-    window: { scrollY: 0, scrollTo() {}, location:{hash:initialHash}, events:{}, addEventListener(name, fn) { this.events[name] = fn; }, history:{pushState(_state, _title, hash) { context.window.location.hash = hash; }} }, URL, console,
+    window: { scrollY: 0, scrollTo() {}, location:{hash:initialHash}, events:{}, addEventListener(name, fn) { this.events[name] = fn; }, history:{pushState(_state, _title, hash) { context.window.location.hash = hash; }} }, URL, console, AbortController, setTimeout, clearTimeout,
     fetch: async (_url, init) => {
       const request = JSON.parse(init.body); calls.push(request);
       if (request.operation === 'search_library' && context.delaySearch) await new Promise(resolve => { release = resolve; });
@@ -58,6 +59,40 @@ test('clicking the active Library tab does not start another request', async () 
   const h = harness(); h.get('#query').value = 'website'; await h.run('load()');
   h.run("switchView('library')"); await h.settle();
   assert.equal(h.calls.filter(c => c.operation === 'search_library').length, 1);
+});
+
+test('Open review editor reveals the matching ready draft without discarding edits', async () => {
+  const h = harness(); await h.settle();
+  h.run(`view = 'media'; viewStates.media.loaded = true;
+    currentRuns = [{id:'run1', kind:'review', target:'review1', state:'ready', result:{description:'Draft analysis', uncertainties:['Only a thumbnail']}}];
+    render([{id:'review1', state:'pending', objective:'PDF steps', version:1}], viewStates.media); renderRuns();`);
+  const open = h.get('#runs').children[0].children.find(n => n.textContent === 'Open review editor');
+  await open.onclick();
+  const editor = h.run("reviewRunViews.get('review1')");
+  assert.equal(editor.area.value, 'Draft analysis\n\nLimitations: Only a thumbnail');
+  assert.equal(editor.area.focused, true);
+  assert.equal(editor.area.scrolled, true);
+  assert.equal(editor.draft.open, true);
+  assert.equal(h.get('#activity').open, false);
+  editor.area.value = 'My edited review';
+  await open.onclick();
+  assert.equal(editor.area.value, 'My edited review');
+  assert.equal(h.calls.filter(c => c.operation === 'media_requests').length, 0);
+});
+
+test('a ready review appears after polling without replacing typed analysis', async () => {
+  const h = harness(); await h.settle();
+  h.run(`render([{id:'review1', state:'pending', objective:'PDF steps', version:1}], viewStates.media);`);
+  const editor = h.run("reviewRunViews.get('review1')");
+  editor.area.value = 'My own analysis';
+  assert.equal(editor.draft, undefined);
+  h.run(`currentRuns = [{id:'run1', kind:'review', target:'review1', state:'ready', result:{description:'New draft', uncertainties:[]}}]; syncReviewRunViews();`);
+  assert.ok(editor.draft);
+  assert.equal(editor.area.value, 'My own analysis');
+  const useDraft = editor.draft.children.find(n => n.textContent === 'Use this draft in the editor');
+  await useDraft.onclick();
+  assert.equal(editor.area.value, 'My own analysis');
+  assert.match(editor.status.textContent, /existing edits are kept/);
 });
 
 test('an unfinished search completes in its own view without being repeated', async () => {
@@ -191,4 +226,55 @@ test('a direct Notes link opens Notes on initial load', async () => {
   assert.equal(h.run('view'), 'research');
   assert.equal(h.get('#page-title').textContent, 'Notes');
   assert.equal(h.calls.filter(c => c.operation === 'research_search').length, 1);
+});
+
+
+test('usage errors explain why the action stopped and restore controls', async () => {
+  const h = harness(); await h.settle();
+  h.context.fetch = async () => ({ ok:false, status:429, json:async () => ({error:'Codex usage limit reached'}) });
+  h.get('#query').value = 'test'; await h.run('load()');
+  assert.match(h.get('#message').textContent, /usage limit.*reset/i);
+  assert.equal(h.get('#search-submit').disabled, false);
+});
+
+test('a request that never responds times out visibly and restores controls', async () => {
+  const h = harness(); await h.settle();
+  h.context.setTimeout = fn => setTimeout(fn, 5);
+  h.context.fetch = async () => new Promise(() => {});
+  h.get('#query').value = 'test';
+  await Promise.race([h.run('load()'), new Promise((_, reject) => setTimeout(() => reject(Error('UI stuck waiting for request')), 100))]);
+  assert.match(h.get('#message').textContent, /timed out/i);
+  assert.equal(h.get('#search-submit').disabled, false);
+});
+
+test('pending reviews explain that no agent is running automatically', () => {
+  const h = harness();
+  const text = h.run(`(() => {
+    const card = el('article'); renderMedia({id:'review1', state:'pending', objective:'Explain image'},card);
+    return card.children.map(n => n.textContent).join(' ');
+  })()`);
+  assert.match(text, /waiting for a person or agent/i);
+  assert.match(text, /usage/i);
+});
+
+
+test('failed note saves retain the draft and show the provider error in the dialog', async () => {
+  const h = harness(); await h.settle();
+  h.context.fetch = async () => ({ok:true, status:200, json:async () => ({error:{code:'usage_limit_reached',message:'Limit reached'}})});
+  h.get('#title').value = 'Keep my draft'; h.get('#note').value = 'My unsaved finding';
+  await h.get('#note-form').onsubmit({preventDefault(){}});
+  assert.match(h.get('#note-status').textContent, /usage limit.*reset/i);
+  assert.equal(h.get('#save-note').disabled, false);
+  assert.equal(h.get('#note').value, 'My unsaved finding');
+});
+
+test('network failures and malformed responses explain recovery', async () => {
+  const h = harness(); await h.settle();
+  h.context.fetch = async () => { throw new TypeError('Failed to fetch'); };
+  await h.run('load()');
+  assert.match(h.get('#message').textContent, /local app is running/i);
+  h.context.fetch = async () => ({ok:false, json:async () => {throw new Error('Invalid JSON');}});
+  await h.run('load()');
+  assert.match(h.get('#message').textContent, /unreadable response/i);
+  assert.equal(h.get('#search-submit').disabled, false);
 });

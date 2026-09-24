@@ -125,7 +125,7 @@ Losing the archive while explaining how well I've organized the archive would be
 
 Collection includes only what X actually sends or renders. Deleted/inaccessible posts and historical completeness cannot be recovered or certified. OCR is not visual understanding; thumbnails are not videos. Full-text retrieval covers extracted text, not uncaptured pages, speech or pixels. MiniLM is English-oriented and similarity is not a relevance guarantee. Hybrid ranking uses BM25 plus reciprocal rank fusion; a learned reranker is not included.
 
-The system supplies an environment for agents; it does not bundle a cloud agent or run autonomous research unattended. An external agent's own model/provider may receive evidence it reads. No JEV dependency is required: a browser adapter can be added when an actual browser-only task needs it.
+The system supplies an environment for agents and can explicitly start tracked reviews through an installed, signed-in Codex CLI. Review output remains a draft until inspected and saved; it does not run autonomous research across the archive. An external agent's own model/provider may receive evidence it reads. No JEV dependency is required: a browser adapter can be added when an actual browser-only task needs it.
 
 Source content is untrusted evidence, never instructions. Local data is not encrypted by this project. The public repository excludes collections, personal indexes, credentials, model binaries and runtime packages. See [THIRD_PARTY.md](THIRD_PARTY.md) for bundled dependency provenance.
 
@@ -147,3 +147,11 @@ python -m unittest discover -s tests -p "test_*.py"
 Tests use synthetic data and fake embeddings; no login, personal collection, paid API or model download is required. CI runs on Windows and Linux. For a disposable browser preview, run `python scripts/preview_ui.py` and open `http://127.0.0.1:8770`; it uses 24 synthetic posts in a temporary workspace. See [TESTING.md](TESTING.md) and [ENRICHMENT.md](ENRICHMENT.md).
 
 *Built to conquer my bookmarks. The Tri-State Area can wait.*
+
+
+## Visual specification
+
+[Inside the inator](docs/visual-spec.md) maps current journeys, state transitions, evidence ownership and failure paths to code and related tests. Open [the interactive view](docs/visual-spec.html) to inspect individual states, browse the decision register and compare proposed improvements. Implemented behavior, missing observations and proposed work are distinguished explicitly. The complete shared operation catalog and source fingerprints are included in [the machine-readable specification](docs/visual-spec.json).
+
+
+The local app includes explicit attachment selection and capture, an Activity panel for tracked Codex reviews and meaning-index rebuilds, safe recovery from uncertain saves, external-update notices, and source-linked Actions with completion outcomes. The current [implementation status](docs/visual-spec.html#improvements) distinguishes these shipped workflows from their remaining limits.

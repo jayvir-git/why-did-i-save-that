@@ -105,3 +105,34 @@ class ResearchTests(unittest.TestCase):
         finally:app.shutdown();app.server_close();thread.join()
 
 if __name__=='__main__':unittest.main()
+
+class SearchReuseTests(unittest.TestCase):
+    setUp = ResearchTests.setUp
+    tearDown = ResearchTests.tearDown
+    def test_queries_reuse_corpus_across_connections_and_refresh_after_import(self):
+        from gold_workspace.enrichment import enriched_records
+        with patch('gold_workspace.enrichment.enriched_records', wraps=enriched_records) as reads:
+            self.w.search_library('retrieval', mode='keyword')
+            other = Workspace(self.tmp.name)
+            try:
+                other.search_library('systems', mode='keyword')
+            finally:
+                other.close()
+            self.assertEqual(reads.call_count, 1, 'Search must not rebuild the entire corpus for each HTTP connection')
+            self.w.import_backup(data=backup('Fresh vocabulary'))
+            self.assertEqual(self.w.search_library('vocabulary', mode='keyword')['receipt']['count'], 1)
+            self.assertEqual(self.w.search_library('retrieval', mode='keyword')['receipt']['count'], 0)
+            self.assertEqual(reads.call_count, 2)
+
+    def test_completion_invalidates_warm_search(self):
+        self.assertEqual(self.w.search_library('transcript',mode='keyword')['receipt']['count'],0)
+        oid=self.w.records()[0]['observation_id']
+        req=self.w.request_media(oid,'Explain')
+        self.w.complete_media(req['id'],'Unique transcript phrase')
+        self.assertEqual(self.w.search_library('transcript',mode='keyword')['receipt']['count'],1)
+
+    def test_unreadable_model_falls_back_to_keyword(self):
+        with patch.object(self.w,'attachment_semantic',side_effect=PermissionError('Model files are not readable')):
+            result=self.w.search_library('retrieval')
+            self.assertEqual(result['receipt']['count'],1)
+            self.assertIn('not readable',result['receipt']['fallback'])
