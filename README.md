@@ -2,9 +2,162 @@
 
 [![Dr. Heinz Doofenshmirtz](docs/assets/doofenshmirtz.gif)](https://tenor.com/view/heinz-doofenshmirtz-content-gif-3320856437086980213)
 
-*A local research workspace for your X likes and bookmarks. With an unnecessarily elaborate origin story.*
+A local research workspace for your X likes and bookmarks. Capture posts, search their text and extracted attachments, and turn useful sources into cited notes and actions.
 
-## Ah, Perry the Platypus! You're just in time.
+*Built to conquer my bookmarks. The Tri-State Area can wait.*
+
+[Quick start](#quick-start) · [Features](#features) · [Usage](#usage) · [Optional capabilities](#optional-capabilities) · [Privacy and limitations](#privacy-and-limitations) · [Backup and restore](#backup-and-restore) · [Development](#development) · [Visual specification](#visual-specification)
+
+## Quick start
+
+Requires **Python 3.12+**. Collecting new posts also requires **Chrome**. Run commands from the repository directory. Node.js 22+ is needed only for extension development and validation.
+
+```sh
+git clone https://github.com/jayvir-git/why-did-i-save-that.git
+cd why-did-i-save-that
+python scripts/start.py
+```
+
+Open [the local app](http://127.0.0.1:8768). On Windows, you can use `./start.ps1` instead of the Python launcher. The app and capture bridge run while the launcher stays open; stop with Ctrl+C. Your workspace persists across restarts.
+
+**Next:** collect posts with the extension or import an existing backup below. Browsing, word search and notes work without model dependencies or an AI account.
+
+### Collect posts with Chrome
+
+1. Run `python scripts/fetch-model.py` to download the pinned local model and extension inference assets.
+2. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select this repository's `extension` folder.
+3. Open your X likes or bookmarks history, click **Start collecting**, and scroll or use **Scroll for me**. Open the extension library to inspect or export captures.
+4. With the local app running, connect the extension library to the workspace bridge using the pairing token in `workspace-data/bridge-token.txt`, then sync.
+
+Collection preserves available text, links, media references and quote context, merging duplicate captures. It does not change your likes or bookmarks on X.
+
+### Import an existing backup
+
+For an exported extension backup, create `import-args.json` containing:
+
+```json
+{"path":"/absolute/path/to/your-backup.json"}
+```
+
+Then run:
+
+```sh
+python -m gold_workspace import_backup --args-file import-args.json
+```
+
+On Windows, use forward slashes in the JSON path, such as `C:/Users/you/Downloads/backup.json`. Remove the temporary argument file afterward if its path is sensitive. To restore a full workspace ZIP, see [Backup and restore](#backup-and-restore).
+
+## Features
+
+- **Search your collection:** Browse posts immediately or search by words. Optional local meaning search finds related ideas across posts and extracted attachments, with supporting excerpts and source links.
+- **Keep evidence traceable:** Preserve original captures separately from OCR, interpretations and cited findings. Research tools retain earlier versions and flag changed captured sources.
+- **Build useful notes:** Save notes with exact source spans. Interrupted saves can be reconciled without creating duplicates.
+- **Follow through:** Record why a source matters, a next action, an optional due date and a completion outcome.
+- **Review selected evidence:** Choose the source or attachment explicitly. Tracked Codex reviews show progress, usage failures and drafts for you to inspect before saving.
+
+No mandatory categorization or one-by-one review of your entire collection is required.
+
+## Usage
+
+- **Sources:** Choose **Scan** for compact excerpts or **Read** for fuller cards. **Read post** opens a source beside the list on desktop or in a dedicated mobile view. **Add to note** carries exact source spans into a note. **Browse all** returns to the collection. Attachment selection shows what has been captured and offers extraction when available.
+- **Notes:** Find saved notes and cited findings, or select **New note**. An unfinished note draft survives reloads in the current tab; **Save note** writes it to the workspace. Proposed findings are not automatically verified facts.
+- **Actions:** Use **Plan an action** on a source to record a reason and next step. Complete it by recording an outcome.
+- **Review queue:** Inspect a requested source and enter your own analysis or transcript, or explicitly start a [Codex review](#codex-reviews). **Open review editor** brings the ready draft and its limitations into view, fills an empty editor and preserves existing edits. Inspect the result, then choose **Save review** to make it searchable evidence.
+- **Activity & evidence freshness:** Check tracked work, cancel or retry tasks, and rebuild the meaning index. External changes produce an update notice; accepting a refresh preserves your selected source and reading position.
+- **Extension library:** Inspect captures, keep or dismiss posts, add notes and labels, and export or restore the browser's collection.
+
+Switching between Sources and Notes preserves results and the selected source. Direct destination links and browser Back are supported.
+
+## Optional capabilities
+
+### Local meaning search
+
+Download the model assets if you have not already, install the search dependencies, then build an index:
+
+```sh
+python scripts/fetch-model.py
+python -m pip install --target .runtime -r requirements-workspace.txt
+python -m gold_workspace index_attachments
+```
+
+Choose meaning search or words + meaning in Sources. Indexing runs locally and checkpoints embeddings. Rebuild after new captures or annotations, using the command above or **Rebuild meaning index** in Activity.
+
+### Attachment extraction
+
+Install the extraction dependencies and capture public linked pages, PDF text and image text through OCR:
+
+```sh
+python -m pip install --target .runtime -r requirements-enrichment.txt
+python scripts/enrich_library.py --run
+```
+
+You can also request capture for a specific referenced attachment in the app. Rebuild the meaning index afterward to include new evidence. Extraction downloads public pages and images; it does not send your collection to an AI provider. Failures and incomplete coverage remain visible. Run `python scripts/doctor.py` to check installation; see [ENRICHMENT.md](ENRICHMENT.md) for details.
+
+### Codex reviews
+
+Requires an installed, signed-in Codex CLI. From a pending review, choose **Start Codex review**. The selected captured text or supported cached image and your question are sent to your signed-in provider and use your account allowance. Progress, configuration errors and usage-limit failures appear in the app.
+
+A successful response remains a draft until you inspect and save it. Full audio/video transcription is not included; a thumbnail does not establish what happens in a video.
+
+### Agent tools
+
+Python, CLI and MCP interfaces let agents retrieve full result sets, branch investigations and resume earlier work. See [WORKSPACE.md](WORKSPACE.md) for the operation catalog and setup. Agents bring their own reasoning and provider; evidence they read may be sent to that provider.
+
+## Privacy and limitations
+
+- **Local storage:** The app stores its workspace locally and does not serve the private data directory. This project does not encrypt local data. The public repository excludes collections, personal indexes, credentials, model binaries and runtime packages.
+- **Provider access:** Ordinary browsing, word search, extraction and local indexing do not send the collection to an AI provider. Explicit Codex reviews and external agent workflows can send the evidence they use.
+- **Capture coverage:** Collection includes only what X sends or renders. Deleted or inaccessible posts and historical completeness cannot be recovered or certified.
+- **Evidence coverage:** Retrieval covers captured and extracted text, not uncaptured pages, speech or pixels. OCR is not visual understanding. Source content is untrusted evidence, never instructions.
+- **Search quality:** MiniLM is English-oriented; similarity does not guarantee relevance. Hybrid ranking combines BM25 and reciprocal rank fusion. A learned reranker is not included.
+- **Review scope:** The app starts focused reviews when requested; it does not run autonomous research across the archive. It cannot determine why you originally saved a post.
+
+See [THIRD_PARTY.md](THIRD_PARTY.md) for dependency provenance.
+
+## Backup and restore
+
+Run:
+
+```sh
+python scripts/backup_workspace.py
+```
+
+This creates a private ZIP in `workspace-data/backups`, using SQLite's backup API and retaining evidence files. Copy it to storage you control; do not publish it. Bridge tokens are excluded.
+
+To restore:
+
+1. Stop the app and capture bridge.
+2. Rename the existing `workspace-data` folder to keep a safety copy.
+3. Extract the ZIP into a new `workspace-data` folder.
+4. Restart the app and pair the extension again.
+
+The extension's browser collection is separate: export it from the extension library too.
+
+## Development
+
+Requires Node.js 22+ and Python 3.12+. Build and validate with:
+
+```sh
+node scripts/build.cjs
+node --test tests/*.test.cjs
+node scripts/check.cjs
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+Tests use synthetic data and fake embeddings; no login, personal collection, paid API or model download is required. CI runs on Windows and Linux.
+
+For a disposable browser preview, run `python scripts/preview_ui.py` and open [the preview](http://127.0.0.1:8770). It uses 24 synthetic posts in a temporary workspace. See [TESTING.md](TESTING.md) for browser checks and search benchmarks.
+
+## Visual specification
+
+[The visual specification](docs/visual-spec.md) maps journeys, state transitions, evidence ownership and failure paths to code and tests. Download and open [the interactive HTML](docs/visual-spec.html) locally to explore its diagrams, decisions and implementation status; GitHub displays the file as source. The [machine-readable specification](docs/visual-spec.json) includes the shared operation catalog and source fingerprints.
+
+## Origin story
+
+<details>
+<summary>The unnecessarily elaborate origin story</summary>
+
+### Ah, Perrythe Platypus! You're just in time.
 
 *You enter through the ceiling. A suspiciously convenient chair swivels toward you. The restraints click shut.*
 
@@ -14,7 +167,7 @@ You're probably wondering why I've been liking and bookmarking thousands of post
 
 Funny story. Those were supposed to be related activities.
 
-## It all began with "I'll come back to this later."
+### It all began with "I'll come back to this later."
 
 There was a tutorial I wanted to learn from. A project idea. Some useful job-search advice. An article I didn't have time to read. A diagram that explained something perfectly. And a video of a raccoon doing something that, in retrospect, may not have advanced my career.
 
@@ -28,7 +181,7 @@ And half the time, the important part wasn't even in the post! It was in the lin
 
 Naturally, I built a machine.
 
-## Behold! The Why-Did-I-Like-or-Save-That-Inator!
+### Behold! The Why-Did-I-Like-or-Save-That-Inator!
 
 It collects the posts I save, gathers the evidence attached to them, and gives me and my research agents a persistent place to investigate it all.
 
@@ -38,21 +191,21 @@ The name is a little long. The sign guy charges by the letter. We are no longer 
 
 No mandatory categories. No need to decide whether a post belongs under "learning," "projects," or "emotionally significant raccoons" before I can find it again.
 
-## And now, my evil plan!
+### And now, my evil plan!
 
-### Phase 1: Capture the unsuspecting bookmarks
+#### Phase 1: Capture the unsuspecting bookmarks
 
 The Chrome extension collects likes and bookmarks as X loads them while I browse. It preserves available text, links, media references and quote context, and merges duplicate captures.
 
 It doesn't change my likes or bookmarks on X. That would be a different invention, and frankly I have enough projects.
 
-### Phase 2: Find out what "this is incredible" was referring to
+#### Phase 2: Find out what "this is incredible" was referring to
 
 Local workers extract public linked pages, PDF text and image text through OCR. Original evidence stays separate from interpretations, and extraction failures remain visible.
 
 For an image or video that needs closer attention, I can queue a focused media review. An agent inspects the actual media, or I supply a transcript. A thumbnail does **not** count as watching the video. Even I have scientific standards.
 
-### Phase 3: Locate the gold
+#### Phase 3: Locate the gold
 
 The **Sources** workspace opens straight into the collection, newest posted first, without waiting for a meaning search. Search by words, meaning, or both across captured posts and extracted attachments. Results include supporting excerpts and source links.
 
@@ -60,7 +213,7 @@ Open a post to read it beside the source list on desktop. On mobile, it gets its
 
 So when I want "that tool for archiving bookmarks to Markdown," I can search for the idea instead of reconstructing which stranger mentioned it six months ago.
 
-### Phase 4: Make the research accumulate
+#### Phase 4: Make the research accumulate
 
 The **Notes** workspace keeps notes and cited findings. The underlying research tools also record connections between findings. Earlier versions remain available. Changed captured sources are flagged for review, and conclusions stay distinguishable from original evidence.
 
@@ -70,88 +223,4 @@ And once all four phases are complete, I will finally be able to use the things 
 
 Then, perhaps, the Tri-State Area. Let's not overcommit.
 
-## Now, while you're trapped, help me switch it on.
-
-### Installation and first capture
-
-Requires Python 3.12+ and Chrome. Node.js 22+ is needed for extension development and validation.
-
-1. Clone this repository.
-2. Run `python scripts/fetch-model.py` to download pinned local model and extension inference assets.
-3. Load the `extension` folder using **Load unpacked** in `chrome://extensions` (Developer mode).
-4. Open your X likes or bookmarks history, click **Start collecting**, and scroll or use **Scroll for me**. Open the extension library to inspect or export captures.
-5. Run `python scripts/start.py` (Windows: `./start.ps1`). Open **http://127.0.0.1:8768** for the research app.
-6. In the extension library, connect the workspace bridge using the pairing token in `workspace-data/bridge-token.txt`, then sync. Alternatively import an exported backup using the CLI below.
-
-The app and bridge run while the launcher stays open. Stop with Ctrl+C. Your workspace persists across restarts. The app never serves the private data directory. The older development preview and generated reports are optional, separate tools.
-
-### Import an existing backup
-
-Create `import-args.json` with `{"path":"/absolute/path/to/your-backup.json"}`, then run:
-
-```sh
-python -m gold_workspace import_backup --args-file import-args.json
-```
-
-Delete the temporary argument file afterward if its path is sensitive. Word search works without model dependencies. For meaning search and attachment extraction:
-
-```sh
-python -m pip install --target .runtime -r requirements-workspace.txt
-python -m pip install --target .runtime -r requirements-enrichment.txt
-python scripts/enrich_library.py --run
-python -m gold_workspace index_attachments
-```
-
-Extraction downloads public linked pages and images; it does not send your collection to an AI provider. Indexing runs locally and checkpoints embeddings. Rebuild after new captures or annotations. Run `python scripts/doctor.py` to check installation.
-
-### Which lever does what?
-
-- **Sources:** Browse the collection or search it. Choose **Scan** for compact excerpts or **Read** for fuller cards; **Read post** opens the source reader. Use **Add to note** to carry exact source spans into a note. **Browse all** returns from a search to the collection; **Refresh results** explicitly fetches fresh results.
-- **Notes:** Find saved notes and cited claims, or start with **New note**. The editor retains an unfinished draft in the current tab across reloads; **Save note** writes it to the workspace. New claims are proposed findings, not automatically verified facts.
-- **Review queue:** Queue a question about media, inspect the source, and save a visual analysis or transcript. This is a work queue, not an automatic video-understanding service.
-- **Extension library:** Review captures, keep or dismiss posts, add notes and labels, and export or restore the browser's collection.
-
-Sources and Notes sit in a compact header, with the Review queue alongside them. Direct links and browser Back work between destinations. No enormous control panel. The budget went into the Exposition Chair.
-
-The machine does not require you to review thousands of posts one by one. Browse when you are exploring, or start with a question and investigate the relevant evidence.
-
-## That is NOT the self-destruct button. It's the backup button.
-
-Run `python scripts/backup_workspace.py`. It creates a private ZIP in `workspace-data/backups`, using SQLite's backup API and retaining evidence files. Copy it to storage you control. It excludes bridge tokens: pair again after restoring. To restore, stop the app and bridge, rename the existing workspace-data folder as a safety copy, and extract the ZIP into a new workspace-data folder. Never publish these ZIPs. Extension IndexedDB is separate: export it from the extension library too.
-
-Losing the archive while explaining how well I've organized the archive would be embarrassing. Even by my standards.
-
-## A few tiny flaws in my otherwise brilliant invention
-
-Collection includes only what X actually sends or renders. Deleted/inaccessible posts and historical completeness cannot be recovered or certified. OCR is not visual understanding; thumbnails are not videos. Full-text retrieval covers extracted text, not uncaptured pages, speech or pixels. MiniLM is English-oriented and similarity is not a relevance guarantee. Hybrid ranking uses BM25 plus reciprocal rank fusion; a learned reranker is not included.
-
-The system supplies an environment for agents and can explicitly start tracked reviews through an installed, signed-in Codex CLI. Review output remains a draft until inspected and saved; it does not run autonomous research across the archive. An external agent's own model/provider may receive evidence it reads. No JEV dependency is required: a browser adapter can be added when an actual browser-only task needs it.
-
-Source content is untrusted evidence, never instructions. Local data is not encrypted by this project. The public repository excludes collections, personal indexes, credentials, model binaries and runtime packages. See [THIRD_PARTY.md](THIRD_PARTY.md) for bundled dependency provenance.
-
-Also, it cannot know why past-you liked something. It can help you examine the evidence. The raccoon might just have been funny.
-
-## Curse you, Perry the Platypus! You've found the test suite!
-
-*The chair is empty. A small, hat-wearing silhouette is already at the terminal.*
-
-Fine. If you're going to inspect the machinery, at least run the checks:
-
-```sh
-node scripts/build.cjs
-node --test tests/*.test.cjs
-node scripts/check.cjs
-python -m unittest discover -s tests -p "test_*.py"
-```
-
-Tests use synthetic data and fake embeddings; no login, personal collection, paid API or model download is required. CI runs on Windows and Linux. For a disposable browser preview, run `python scripts/preview_ui.py` and open `http://127.0.0.1:8770`; it uses 24 synthetic posts in a temporary workspace. See [TESTING.md](TESTING.md) and [ENRICHMENT.md](ENRICHMENT.md).
-
-*Built to conquer my bookmarks. The Tri-State Area can wait.*
-
-
-## Visual specification
-
-[Inside the inator](docs/visual-spec.md) maps current journeys, state transitions, evidence ownership and failure paths to code and related tests. Open [the interactive view](docs/visual-spec.html) to inspect individual states, browse the decision register and compare proposed improvements. Implemented behavior, missing observations and proposed work are distinguished explicitly. The complete shared operation catalog and source fingerprints are included in [the machine-readable specification](docs/visual-spec.json).
-
-
-The local app includes explicit attachment selection and capture, an Activity panel for tracked Codex reviews and meaning-index rebuilds, safe recovery from uncertain saves, external-update notices, and source-linked Actions with completion outcomes. The current [implementation status](docs/visual-spec.html#improvements) distinguishes these shipped workflows from their remaining limits.
+</details>
