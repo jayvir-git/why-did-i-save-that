@@ -74,7 +74,8 @@ class ProviderTests(unittest.TestCase):
                     with self.assertRaisesRegex((RuntimeError,ValueError),pattern):run_claude(self.w,run,popen=lambda *a,**k:Process([event]))
                 self.w.cancel_work(run['id'])
         run=self.start(key='timeout-test-attempt')
-        with patch('gold_workspace.runner.shutil.which',return_value='claude.exe'):
+        # A coarse clock can return the same value at creation and first check.
+        with patch('gold_workspace.runner.shutil.which',return_value='claude.exe'), patch('gold_workspace.runner.time.monotonic',return_value=100):
             with self.assertRaises(TimeoutError):run_claude(self.w,run,popen=lambda *a,**k:Process([]),timeout=0)
         self.assertNotEqual(self.w.work_status(run['id'])['runs'][0]['state'],'ready')
     def test_worker_dispatches_claude_and_names_its_recovery(self):

@@ -159,7 +159,7 @@ def run_review(w,run,provider,popen,timeout):
                 state=w.db.execute('SELECT state FROM work_runs WHERE id=?',(run['id'],)).fetchone()[0]
                 if state not in ACTIVE:
                     process.kill();return
-                if time.monotonic()>deadline:raise TimeoutError(f'{label} review timed out after {timeout} seconds. Retry or use manual review.')
+                if time.monotonic()>=deadline:raise TimeoutError(f'{label} review timed out after {timeout} seconds. Retry or use manual review.')
                 try:line=events.get(timeout=.5)
                 except queue.Empty:continue
                 if line is None:break
